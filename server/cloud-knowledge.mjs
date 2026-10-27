@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { catalogPath, mergeCatalog, projectRoot } from './catalog-store.mjs';
-import { catalogSort, catalogWhere, normalizeFilters } from './catalog-query.mjs';
+import { catalogSort, catalogWhere, normalizeFilters, facetSuggestionQuery } from './catalog-query.mjs';
 import { movieDocument, tokenize } from './knowledge-document.mjs';
 import { facets, toggleFilter } from '../src/lib/catalog.js';
 
@@ -114,13 +114,22 @@ export function createCloudKnowledgeBase({ url = process.env.DATABASE_URL, query
   }
   async function upsertImported(movies) {
     await initialize();
-    const merged = movies.map(movie => mergeCatalog(seeds, [movie]).find(item => item.tmdbId === movie.tmdbId)).filter(Boolean);
+    const rows = await execute('SELECT data FROM movies WHERE tmdb_id = ANY(?::bigint[])', [movies.map(movie => movie.tmdbId)]);
+    const existing = new Map(rows.map(row => [row.data.tmdbId, row.data]));
+    const merged = movies.map(movie => mergeCatalog(seeds, [{ ...existing.get(movie.tmdbId), ...movie }]).find(item => item.tmdbId === movie.tmdbId)).filter(Boolean);
     await writeMovies(merged);
     await setMetadata('catalogUpdatedAt', new Date().toISOString());
     await setMetadata('indexedAt', new Date().toISOString());
   }
   return {
     initialize, stats, search, queryCatalog, getMovie, getByTmdb, upsertImported,
+    async suggestFacet(options) {
+      await initialize();
+      const searchIds = options.search ? (await search(options.search, 2000)).map(hit => hit.id) : undefined;
+      const { sql, params, current } = facetSuggestionQuery({ ...options, searchIds }, 'postgres');
+      const total = current ? Number((await execute('SELECT COUNT(*) AS count FROM movies m' + current.sql, current.params))[0].count) : 0;
+      return (await execute(sql, params)).map(row => ({ value: row.value, count: Number(row.count) + total }));
+    },
     hasTmdb: async id => Boolean(await getByTmdb(id)),
     getMetadata: async key => { await initialize(); return getMetadata(key); },
     setMetadata: async (key, value) => { await initialize(); return setMetadata(key, value); },

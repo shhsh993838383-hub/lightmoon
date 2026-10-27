@@ -3,8 +3,8 @@ import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { catalogPath, mergeCatalog, projectRoot, readTmdbCatalog, tmdbCatalogPath } from './catalog-store.mjs';
-import { catalogSort, catalogWhere, normalizeFilters } from './catalog-query.mjs';
-import { facets, toggleFilter } from '../src/lib/catalog.js';
+import { catalogSort, catalogWhere, normalizeFilters, facetSuggestionQuery } from './catalog-query.mjs';
+import { facets, toggleFilter, facetValues } from '../src/lib/catalog.js';
 
 export { projectRoot, catalogPath };
 export const knowledgeDatabasePath = resolve(projectRoot, '.data/knowledge.sqlite');
@@ -53,12 +53,14 @@ export function createKnowledgeBase({ dbPath = knowledgeDatabasePath, sourcePath
     const row = db.prepare('SELECT rowid FROM movies WHERE id = ?').get(movie.id);
     putSearch.run(row.rowid, movie.id, tokenize(document).join(' '));
     deleteTags.run(movie.id);
-    for (const group of ['genre', 'mood', 'theme', 'pace', 'structure']) for (const tag of movie[group] || []) putTag.run(movie.id, group, tag);
+    for (const facet of facets.filter(facet => !['duration', 'exclude'].includes(facet.id))) for (const tag of facetValues(movie, facet.id)) putTag.run(movie.id, facet.id, tag);
   }
   function upsertImported(movies) {
     transaction(() => {
       for (const movie of movies) {
-        const merged = mergeCatalog(seeds, [movie]).find(item => item.tmdbId === movie.tmdbId);
+        const row = db.prepare('SELECT data FROM movies WHERE tmdb_id = ?').get(movie.tmdbId);
+        const existing = row ? JSON.parse(row.data) : {};
+        const merged = mergeCatalog(seeds, [{ ...existing, ...movie }]).find(item => item.tmdbId === movie.tmdbId);
         if (merged) upsert(merged);
       }
       putMetadata.run('catalogUpdatedAt', new Date().toISOString());
@@ -72,12 +74,12 @@ export function createKnowledgeBase({ dbPath = knowledgeDatabasePath, sourcePath
     const source = readFileSync(sourcePath, 'utf8');
     seeds = JSON.parse(source);
     const seedHash = createHash('sha256').update(source).digest('hex');
-    if (getMetadata('catalogSchema') !== '3') {
+    if (getMetadata('catalogSchema') !== '4') {
       const oldMovies = db.prepare('SELECT data FROM movies ORDER BY rowid').all().map(row => JSON.parse(row.data));
       transaction(() => {
         db.exec('DELETE FROM movie_search; DELETE FROM movie_tags;');
         for (const movie of oldMovies) upsert(movie);
-        putMetadata.run('catalogSchema', '3');
+        putMetadata.run('catalogSchema', '4');
       });
     }
     if (getMetadata('seedHash') !== seedHash) transaction(() => {
@@ -134,6 +136,13 @@ export function createKnowledgeBase({ dbPath = knowledgeDatabasePath, sourcePath
   return {
     get movies() { refresh(); return parseRows(db.prepare('SELECT data FROM movies ORDER BY rowid').all()); },
     refresh, stats, search, queryCatalog, upsertImported,
+    suggestFacet(options) {
+      refresh();
+      const searchIds = options.search ? search(options.search, 2000).map(hit => hit.id) : undefined;
+      const { sql, params, current } = facetSuggestionQuery({ ...options, searchIds });
+      const total = current ? db.prepare('SELECT COUNT(*) AS count FROM movies m' + current.sql).get(...current.params).count : 0;
+      return db.prepare(sql).all(...params).map(row => ({ value: row.value, count: Number(row.count) + total }));
+    },
     getMovie(id) { refresh(); const row = db.prepare('SELECT data FROM movies WHERE id = ?').get(id); return row ? JSON.parse(row.data) : null; },
     getByTmdb(id) { refresh(); const row = db.prepare('SELECT data FROM movies WHERE tmdb_id = ?').get(id); return row ? JSON.parse(row.data) : null; },
     hasTmdb(id) { return Boolean(db.prepare('SELECT 1 FROM movies WHERE tmdb_id = ?').get(id)); },

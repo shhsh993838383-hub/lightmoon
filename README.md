@@ -1,19 +1,37 @@
 # 光幕 lightmoon
 
-面向中文用户的电影资料与发现平台原型。包含真实海报、多维标签筛选、电影详情、导演关联检索、主题片单、想看片单、我已看过、个人评分与 AI 对话找电影。
+面向中文用户的电影资料与发现平台原型。包含真实海报、多维标签筛选、导演与演员检索、国家／地区、语言、年代、电影详情、主题片单、想看片单、我已看过、个人评分与 AI 对话找电影。
 
 ## 网站部署
 
 网站入口：[光幕 lightmoon](https://shhsh993838383-hub.github.io/lightmoon/)。源码：[GitHub 仓库](https://github.com/shhsh993838383-hub/lightmoon)。
 
-GitHub Pages 发布页面、海报和当前已收录的电影快照，不依赖本机运行。尚未配置 Vercel 地址时，页面提供快照片库的搜索、筛选、详情、想看、已看记录、个人评分和主题片单，AI 页面明确显示尚未开放，不请求不存在的服务器接口。快照目前为 137 部电影，并非全球全部影片；个人想看、已看记录和评分保存在访问者自己的浏览器中。
+GitHub Pages 发布页面、海报和当前已收录的电影快照，不依赖本机运行。尚未配置云端 API 地址时，页面提供快照片库的搜索、筛选、详情、想看、已看记录、个人评分和主题片单，AI 页面明确显示尚未开放，不请求不存在的服务器接口。快照目前为 **2,014 部电影**，其中 2,011 部有海报，1,992 部有 TMDB 评分，367 部有核对后的豆瓣评分，1,584 部有烂番茄专业影评新鲜度。并非全球全部影片；个人想看、已看记录和评分保存在访问者自己的浏览器中。
 
 `.github/workflows/pages.yml` 会在推送 `main` 后测试、构建并发布页面，自动处理 `/lightmoon/` 路径。快照从 `server/data/initial-catalog.json` 和精选资料生成。`public/catalog.json` 是构建产物，不包含密钥。
 
-Vercel 后端部署配置已提供，实际启用还需完成账户验证、创建云数据库与设置环境变量：
+### Cloudflare Workers + D1（当前首选）
+
+`workers/index.mjs` 提供电影目录、组合筛选、搜索建议、TMDB 搜索、豆瓣榜单及 DeepSeek 对话接口。`workers/knowledge.mjs` 使用 D1、FTS5 和中文双字词索引，查询采用分页，并适配 D1 的 SQL 参数和批量查询限制。片库不打包进 Worker 脚本。
+
+1. 用 Cloudflare 账号登录：`npx wrangler login --use-keyring`。首次登录与授权需要账号所有者完成。
+2. 创建免费 D1：`npx wrangler d1 create lightmoon-movies`，把返回的数据库 ID 填入 `wrangler.jsonc` 的 `database_id`。
+3. 执行 `npx wrangler d1 migrations apply lightmoon-movies --remote`。
+4. 执行 `npm run cf:seed`，再执行 `npx wrangler d1 execute lightmoon-movies --remote --file .data/cloudflare-seed.sql`。该导入按稳定 ID 更新已发布快照，保留后来检索加入的其他电影。
+5. 使用 `npx wrangler secret put DEEPSEEK_API_KEY` 和 `npx wrangler secret put TMDB_API_KEY` 写入服务端密钥；也支持 `TMDB_ACCESS_TOKEN`。不要把值写入配置或提交 Git。
+6. 执行 `npm run cf:deploy`，取得 `https://lightmoon-api.实际子域.workers.dev`。
+7. 确认云端状态、组合筛选、跨域及一次真实 AI 对话后，在 GitHub Actions Variables 设置 `VITE_API_BASE_URL` 为上述公开网址，运行 Publish lightmoon 工作流。
+
+`wrangler.jsonc` 默认只允许现有 GitHub Pages 来源跨域访问，AI 每个 IP 每分钟最多 12 次、站点每天最多 100 次 DeepSeek 请求；每日值可用 `AI_DAILY_LIMIT` 调整。请求限额保存在 D1，密钥只在服务端。Cloudflare 的免费额度不包含 DeepSeek API 调用费用。
+
+本地验证：`npx wrangler d1 migrations apply lightmoon-movies --local`，`npm run cf:seed`，`npx wrangler d1 execute lightmoon-movies --local --file .data/cloudflare-seed.sql`，`npm run cf:dev`。默认端口 8790。
+
+### Vercel 备用方案
+
+Vercel 后端部署配置保留，实际启用还需完成账户验证、创建云数据库与设置环境变量：
 
 1. Vercel 导入本仓库，使用 `vercel.json`，Node.js 24。后端入口为 `api/index.mjs`，不启动常驻服务器。
-2. 在 Vercel 配置 `DATABASE_URL`（PostgreSQL，例如 Neon）、`DEEPSEEK_API_KEY`、`TMDB_ACCESS_TOKEN`，以及 `ALLOWED_ORIGINS=https://shhsh993838383-hub.github.io`。DeepSeek 其他配置沿用 `.env.example`。
+2. 在 Vercel 配置 `DATABASE_URL`（PostgreSQL，例如 Neon）、`DEEPSEEK_API_KEY`、`TMDB_API_KEY` 或 `TMDB_ACCESS_TOKEN`，以及 `ALLOWED_ORIGINS=https://shhsh993838383-hub.github.io`。DeepSeek 其他配置沿用 `.env.example`。
 3. PostgreSQL 首次访问时建表并导入初始快照；全文索引、后续检索导入的影片和请求限额保存到云数据库。豆瓣榜单使用实例内短期缓存，不向 Vercel 只读目录写文件。
 4. 在 GitHub 仓库 Actions Variables 设置 `VITE_API_BASE_URL=https://实际项目.vercel.app`，手动运行 Publish lightmoon 工作流。该变量只放公开网址。后端密钥不进入 Pages 构建。
 5. 验证 `/api/assistant/status`、跨域请求、电影搜索及一次真实 AI 对话，再开放动态能力。
@@ -96,6 +114,10 @@ npm run tmdb:sync -- --limit 120
 
 单次导入数量为 1 到 2000 部，默认 120 部。同步先匹配编辑精选，再收集华语高票数影片及全球高分、热门影片，导入中文资料、演职员、关键词、海报与 TMDB 评分。重复执行会更新相同记录；只有本轮全部成功后才替换快照，请求失败时保留原有资料。该命令是有限批量导入，不代表收录了全球全部电影，也不会在后台定时运行。
 
+仓库 Actions 中的 **Expand movie catalog** 可手动在云端扩充快照，需要 Actions Secret `TMDB_API_KEY` 或 `TMDB_ACCESS_TOKEN`。每批保存进度并输出 `expanded-catalog.json` artifact；artifact 尚需核对、补评分和更新 `server/data/initial-catalog.json` 后提交，才会发布到网站。当前 2,014 部数据由该云端流程扩充而来。
+
+导演、演员、国家／地区、语言使用各自资料字段筛选，支持搜索名称和最多 8 项组合。国家／地区表示影片出品地，不推测演员或导演国籍；演员资料目前为每片最多 8 位主要演职员。年代来自上映年份，未知字段不能满足相关条件。相同组的“任选／全部”规则同样适用这些维度。
+
 页面每次打开会从 `/api/catalog` 读取片库，加载失败时保留本地精选供浏览。新增影片分批展示；想看与个人评分保留 TMDB 影片 ID，刷新后不会丢失。TMDB 评分与个人评分分别标明来源。
 
 官方 Logo 保存在 `public/brand/tmdb.svg`，下载自 [TMDB Logos & Attribution](https://www.themoviedb.org/about/logos-attribution)。站内“关于与资料来源”包含官方署名：
@@ -122,11 +144,19 @@ API 和页面采用数据库筛选与分页，每次最多返回 200 部；前�
 
 `GET /api/douban/movie/hot/全部` 等接口返回真实榜单，缓存一小时。请求失败时保留并明确标记已有缓存；无缓存则显示失败，不使用上游仓库的模拟数据兜底。若设置 `DOUBAN_API_KEY`，仅在高分总榜移动端失败时尝试旧版 Top250 接口；无效 Key 不会伪装成成功。豆瓣与 TMDB 评分分别标明。第三方 MIT 许可见 `THIRD_PARTY_NOTICES.md`。
 
+## 多平台评分
+
+电影卡片、搜索推荐和详情分别展示 TMDB、豆瓣、烂番茄评分。TMDB 和豆瓣是十分制；烂番茄显示专业影评好评比例，详情另列观众好评率。缺失项显示“暂无评分”，不拿其他平台或示例值补齐。
+
+`scripts/enrich-ratings.mjs` 根据精确 IMDb ID，通过 Wikidata 关联豆瓣 ID 和烂番茄影片路径，再读取实际评分；豆瓣同时核对片名和年份。`scripts/collect-douban-ratings.mjs` 有限读取公开榜单并缓存，`scripts/publish-catalog.mjs` 合并已核对评分到发布快照。`node --use-env-proxy scripts/enrich-ratings.mjs --input 文件 --limit 2014 --providers rotten` 可单独补烂番茄。遇到明确限流会停止该平台，未核对资料保持空缺。
+
+用户提供的 `bookyo/douban-imdb-api` 仓库只有接口说明，2026-10-27 测试其 `movie.querydata.org` 服务无法连接，未把 README 的示例评分作为影片资料。当前评分读取实现独立于该服务。
+
 ## GitHub 与部署
 
 仓库包含代码、精选影片和本地海报，排除 `.env`、全部密钥、`.data` 数据库/导入进度、依赖、构建文件及截图。GitHub Actions 会执行测试与构建，CI 不需要 API 密钥。
 
-主要部署方式为 GitHub Pages 前端与 Vercel API + PostgreSQL，见上方部署说明。另提供 `Dockerfile`：通过环境变量配置服务端密钥，将 `/app/.data` 挂载到服务器持久磁盘后，可以使用原有 SQLite 和全量导入命令；无需把百万级数据库提交进 Git 历史。
+主要部署方式为 GitHub Pages 前端与 Cloudflare Workers API + D1，见上方部署说明；Vercel + PostgreSQL 保留为备用。另提供 `Dockerfile`：通过环境变量配置服务端密钥，将 `/app/.data` 挂载到服务器持久磁盘后，可以使用原有 SQLite 和全量导入命令；无需把百万级数据库提交进 Git 历史。
 
 ## 本版范围
 

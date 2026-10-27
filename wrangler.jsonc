@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "lightmoon-api",
+  "main": "workers/index.mjs",
+  "compatibility_date": "2026-10-27",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "vars": {
+    "ALLOWED_ORIGINS": "https://shhsh993838383-hub.github.io",
+    "DEEPSEEK_BASE_URL": "https://api.deepseek.com",
+    "DEEPSEEK_MODEL": "deepseek-flash",
+    "AI_DAILY_LIMIT": "100"
+  },
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "lightmoon-movies",
+    "database_id": "00000000-0000-0000-0000-000000000000",
+    "migrations_dir": "workers/migrations"
+  }],
+  "observability": { "enabled": false }
+}

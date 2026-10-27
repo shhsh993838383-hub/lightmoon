@@ -56,6 +56,14 @@ export function createAppHandler({ knowledge = createKnowledgeBase(), config = {
         return json(response, 200, { status: state.status, total: state.total, checked: state.checked, imported: state.imported, updatedAt: state.updatedAt, error: state.error, ...await knowledge.stats() });
       } catch { return json(response, 503, { error: '暂时无法读取导入进度。' }); }
     }
+    if (request.method === 'GET' && path === '/api/catalog/facets') {
+      try {
+        const filters = JSON.parse(requestUrl.searchParams.get('filters') || '{}');
+        if (!filters || typeof filters !== 'object' || Array.isArray(filters)) throw new Error('invalid_filters');
+        const ids = requestUrl.searchParams.has('ids') ? requestUrl.searchParams.get('ids').split(',').filter(Boolean).slice(0, 2000) : undefined;
+        return json(response, 200, { options: await knowledge.suggestFacet({ group: requestUrl.searchParams.get('group'), query: requestUrl.searchParams.get('query') || '', search: requestUrl.searchParams.get('search')?.slice(0, 160), mode: requestUrl.searchParams.get('mode'), filters, ids }) });
+      } catch { return json(response, 400, { error: '暂时无法读取这些筛选项。' }); }
+    }
     if (request.method === 'GET' && path === '/api/catalog/global') {
       try { return json(response, 200, await discovery.search(requestUrl.searchParams.get('query'), Number(requestUrl.searchParams.get('page') || 1))); }
       catch (error) { return json(response, error instanceof TmdbError ? error.status : 400, { error: error instanceof TmdbError ? error.message : '搜索条件不正确。' }); }

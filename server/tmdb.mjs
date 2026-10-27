@@ -3,6 +3,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 const apiRoot = 'https://api.themoviedb.org/3';
 const genreNames = { 28: '动作', 12: '冒险', 16: '动画', 35: '喜剧', 80: '犯罪', 99: '纪录片', 18: '剧情', 10751: '家庭', 14: '奇幻', 36: '历史', 27: '恐怖', 10402: '音乐', 9648: '悬疑', 10749: '爱情', 878: '科幻', 10770: '电视电影', 53: '惊悚', 10752: '战争', 37: '西部' };
 const regionNames = new Intl.DisplayNames(['zh-CN'], { type: 'region' });
+const chineseRegions = { CN: '中国大陆', HK: '中国香港', MO: '中国澳门', TW: '中国台湾' };
 const languageNames = new Intl.DisplayNames(['zh-CN'], { type: 'language' });
 const titleKey = title => String(title || '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
 
@@ -48,7 +49,7 @@ export function normalizeTmdbMovie(raw, { images, importedAt = new Date().toISOS
   const imageBase = images?.secure_base_url?.startsWith('https://image.tmdb.org/') ? images.secure_base_url : 'https://image.tmdb.org/t/p/';
   const imageSize = images?.poster_sizes?.includes('w342') ? 'w342' : 'w500';
   const posterPath = /^\/[\w.-]+\.(?:jpg|png|webp)$/.test(raw.poster_path || '') ? raw.poster_path : null;
-  const countries = (raw.production_countries || []).map(item => { try { return regionNames.of(item.iso_3166_1); } catch { return item.name; } }).filter(Boolean);
+  const countries = (raw.production_countries || []).map(item => { try { return chineseRegions[item.iso_3166_1] || regionNames.of(item.iso_3166_1); } catch { return item.name; } }).filter(Boolean);
   const languages = (raw.spoken_languages || []).map(item => { try { return languageNames.of(item.iso_639_1); } catch { return item.name || item.english_name; } }).filter(Boolean);
   const directors = [...new Set((raw.credits?.crew || []).filter(person => person.job === 'Director').map(person => person.name).filter(Boolean))];
   const voteCount = Number.isSafeInteger(raw.vote_count) && raw.vote_count > 0 ? raw.vote_count : 0;

@@ -11,3 +11,6 @@ scripts/.cache/
 .vercel/
 vercel-public/
 public/catalog.json
+.wrangler/
+.dev.vars
+.dev.vars.*

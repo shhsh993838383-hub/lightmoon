@@ -29,7 +29,7 @@ test('TMDB metadata keeps provenance and ratings without inventing subjective an
   assert.deepEqual(movie.mood, []);
   assert.deepEqual(movie.theme, []);
   assert.equal(movie.tagStatus, 'tmdb-unreviewed');
-  assert.equal(movie.country, '中国');
+  assert.equal(movie.country, '中国大陆');
   assert.ok(movie.aliases.includes('测试别名'));
   assert.equal(movie.cast[0].name, '测试演员');
   assert.equal(movie.tmdbRating.votes, 1234);

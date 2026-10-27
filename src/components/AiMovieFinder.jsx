@@ -1,3 +1,4 @@
+import FilmRatings from './FilmRatings.jsx';
 import { apiUrl, assetUrl, hasApi } from '../lib/urls.js';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowClockwise, ArrowRight, ArrowUpRight, Check, ChatCircleDots, FilmSlate, Heart, PaperPlaneTilt, Plus, Sparkle, Stop } from '@phosphor-icons/react';
@@ -22,7 +23,7 @@ function Recommendation({ movie, saved, onSave, onOpen }) {
     <button className="ai-movie-poster" onClick={() => onOpen(movie)} aria-label={`查看${movie.title}`}>
       {failed || !movie.poster ? <span className="ai-poster-failure"><FilmSlate size={28} /></span> : <img src={assetUrl(movie.poster)} width={movie.posterWidth} height={movie.posterHeight} alt={`${movie.title}电影海报`} loading="lazy" onError={() => setFailed(true)} />}
     </button>
-    <div className="ai-movie-copy"><div className="ai-movie-heading"><button onClick={() => onOpen(movie)}>{movie.title}<ArrowUpRight size={13} /></button><button className={`save-button ${saved ? 'is-saved' : ''}`} onClick={() => onSave(movie.id)} aria-pressed={saved} aria-label={`${saved ? '从想看中移除' : '想看'}${movie.title}`}><Heart size={17} weight={saved ? 'fill' : 'regular'} /></button></div><div className="ai-movie-meta">{movie.year || '年份待补充'} · {movie.minutes ? `${movie.minutes} 分钟` : '片长待补充'}</div><p>{movie.reason}</p><button className="ai-detail-link" onClick={() => onOpen(movie)}>查看电影资料<ArrowRight size={12} /></button></div>
+    <div className="ai-movie-copy"><div className="ai-movie-heading"><button onClick={() => onOpen(movie)}>{movie.title}<ArrowUpRight size={13} /></button><button className={`save-button ${saved ? 'is-saved' : ''}`} onClick={() => onSave(movie.id)} aria-pressed={saved} aria-label={`${saved ? '从想看中移除' : '想看'}${movie.title}`}><Heart size={17} weight={saved ? 'fill' : 'regular'} /></button></div><div className="ai-movie-meta">{movie.year || '年份待补充'} · {movie.minutes ? `${movie.minutes} 分钟` : '片长待补充'}</div><FilmRatings movie={movie} /><p>{movie.reason}</p><button className="ai-detail-link" onClick={() => onOpen(movie)}>查看电影资料<ArrowRight size={12} /></button></div>
   </article>;
 }
 

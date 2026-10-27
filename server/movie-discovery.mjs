@@ -37,7 +37,9 @@ export function createMovieDiscovery({ client = createTmdbClient(), knowledge } 
     const match = matchCuratedResult({ title: item.title, year: item.year }, result.results || []);
     if (!match) return null;
     const [movie] = await importIds([match.id]);
-    return { ...movie, doubanId: item.doubanId, doubanRating: item.rating, doubanPage: item.page };
+    const matched = { ...movie, doubanId: item.doubanId, doubanRating: item.rating, doubanPage: item.page };
+    await knowledge.upsertImported([matched]);
+    return matched;
   }
   return { search, importIds, matchDouban };
 }
