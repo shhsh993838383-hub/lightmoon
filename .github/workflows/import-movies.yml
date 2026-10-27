@@ -1,0 +1,32 @@
+name: Expand movie catalog
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: Candidate count (1-2000)
+        default: '2000'
+        required: true
+permissions:
+  contents: read
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: node scripts/expand-catalog.mjs --limit "$IMPORT_LIMIT"
+        env:
+          TMDB_ACCESS_TOKEN: ${{ secrets.TMDB_ACCESS_TOKEN }}
+          IMPORT_LIMIT: ${{ inputs.limit }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: expanded-catalog
+          path: .data/expanded-catalog.json
+          retention-days: 7
+          if-no-files-found: error

@@ -75,7 +75,7 @@ export function matchCuratedResult(seed, results) {
   return results.find(movie => !movie.adult && Number(movie.release_date?.slice(0, 4)) === seed.year && [movie.title, movie.original_title].some(name => name && names.has(titleKey(name))));
 }
 
-export async function syncTmdbCatalog({ client = createTmdbClient(), seeds, existing = [], limit = 120, onProgress = () => {} }) {
+export async function syncTmdbCatalog({ client = createTmdbClient(), seeds, existing = [], limit = 120, skipExisting = false, onProgress = () => {}, onBatch = () => {} }) {
   if (!Number.isInteger(limit) || limit < 1 || limit > 2000) throw new TmdbError('单次同步数量应为 1 到 2000 部。', 'tmdb_invalid_limit', 400);
   const config = await client.get('/configuration');
   const candidates = new Map();
@@ -88,12 +88,12 @@ export async function syncTmdbCatalog({ client = createTmdbClient(), seeds, exis
     if (match) candidates.set(match.id, seed.id);
   }
   for (let page = 1; candidates.size < limit && page <= 100; page++) {
-    const lists = page === 1 ? [
+    const lists = [
       ['/discover/movie', { with_origin_country: 'CN', sort_by: 'vote_count.desc', 'vote_count.gte': 100 }],
       ['/discover/movie', { with_origin_country: 'HK', sort_by: 'vote_count.desc', 'vote_count.gte': 100 }],
       ['/discover/movie', { with_origin_country: 'TW', sort_by: 'vote_count.desc', 'vote_count.gte': 100 }],
       ['/movie/top_rated', {}], ['/movie/popular', {}],
-    ] : [['/movie/top_rated', {}], ['/movie/popular', {}]];
+    ];
     let hasResults = false;
     for (const [path, params] of lists) {
       if (candidates.size >= limit) break;
@@ -107,7 +107,7 @@ export async function syncTmdbCatalog({ client = createTmdbClient(), seeds, exis
     if (!hasResults) break;
   }
   let processed = 0, skipped = 0;
-  const entries = [...candidates];
+  const entries = [...candidates].filter(([id]) => !skipExisting || !records.has(id));
   // Keep upstream concurrency small, and only replace the on-disk snapshot after a successful run.
   for (let offset = 0; offset < entries.length; offset += 3) {
     const batch = await Promise.all(entries.slice(offset, offset + 3).map(async ([id, curatedId]) => {
@@ -116,8 +116,9 @@ export async function syncTmdbCatalog({ client = createTmdbClient(), seeds, exis
         return normalizeTmdbMovie(raw, { images: config.images, curatedId: curatedId || records.get(id)?.curatedId });
       } catch (error) { if (['tmdb_not_found', 'tmdb_invalid_record'].includes(error.code)) return null; throw error; }
     }));
-    for (const movie of batch) { if (movie) records.set(movie.tmdbId, movie); else skipped++; processed++; }
-    onProgress({ stage: 'importing', current: processed, total: candidates.size });
+    for (const movie of batch) { if (movie) records.set(movie.tmdbId, { ...records.get(movie.tmdbId), ...movie }); else skipped++; processed++; }
+    onProgress({ stage: 'importing', current: processed, total: entries.length });
+    await onBatch([...records.values()]);
   }
   return { version: 1, updatedAt: new Date().toISOString(), movies: [...records.values()], processed, skipped };
 }
