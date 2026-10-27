@@ -4,7 +4,7 @@ on:
     inputs:
       limit:
         description: Qualified catalog target (1-10000)
-        default: '5000'
+        default: '10000'
         required: true
 permissions:
   contents: read

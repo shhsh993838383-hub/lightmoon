@@ -1,7 +1,7 @@
 import { catalogSort, catalogWhere, normalizeFilters, facetSuggestionQuery } from '../server/catalog-query.mjs';
 import { movieDocument, tokenize } from '../server/knowledge-document.mjs';
 import { mergeCatalog } from '../server/catalog-merge.mjs';
-import { facets, facetValues, toggleFilter } from '../src/lib/catalog.js';
+import { facets, toggleFilter } from '../src/lib/catalog.js';
 import seeds from '../src/data/movies.json' with { type: 'json' };
 
 export function createD1KnowledgeBase(db) {
@@ -34,6 +34,12 @@ export function createD1KnowledgeBase(db) {
     let facetCounts;
     if (options.facets) {
       const filters = normalizeFilters(options.filters);
+      const global = !searchIds && !options.ids && !options.preferences && Object.values(filters).every(values => values.length === 0);
+      if (global) {
+        const cached = await first("SELECT value FROM metadata WHERE key = 'facetCounts'");
+        if (cached) facetCounts = JSON.parse(cached.value);
+      }
+      if (!facetCounts) {
       const entries = [], groups = [];
       let queries = [], params = [];
       const flush = () => { if (queries.length) groups.push(prepared('SELECT ' + queries.join(', '), params)); queries = []; params = []; };
@@ -47,6 +53,8 @@ export function createD1KnowledgeBase(db) {
       facetCounts = Object.fromEntries(facets.map(facet => [facet.id, {}]));
       const result = groups.length ? await db.batch(groups) : [];
       for (const row of result.flatMap(item => item.results)) for (const [key, count] of Object.entries(row)) { const [group, value] = entries[Number(key.slice(1))]; facetCounts[group][value] = count; }
+      if (global) await setMetadata('facetCounts', JSON.stringify(facetCounts));
+      }
     }
     return { movies: rows.map(row => JSON.parse(row.data)), total: count.total, limit, offset, ...(facetCounts ? { facetCounts } : {}) };
   }
@@ -73,15 +81,11 @@ export function createD1KnowledgeBase(db) {
       }
       const document = movieDocument(movie);
       statements.push(prepared(`INSERT INTO movies(id,data,document,tmdb_id,year,minutes,rating,votes,curated) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data,document=excluded.document,tmdb_id=excluded.tmdb_id,year=excluded.year,minutes=excluded.minutes,rating=excluded.rating,votes=excluded.votes,curated=excluded.curated`, [movie.id, JSON.stringify(movie), document, movie.tmdbId, movie.year, movie.minutes, movie.tmdbRating?.average ?? null, movie.tmdbRating?.votes ?? null, movie.tagStatus === 'tmdb-unreviewed' ? 0 : 1]));
-      statements.push(prepared('DELETE FROM movie_search WHERE movie_id = ?', [movie.id]), prepared('INSERT INTO movie_search(movie_id,tokens) VALUES (?,?)', [movie.id, tokenize(document).join(' ')]), prepared('DELETE FROM movie_tags WHERE movie_id = ?', [movie.id]));
-      const tags = facets.filter(facet => !['duration', 'exclude'].includes(facet.id)).flatMap(facet => facetValues(movie, facet.id).map(value => [movie.id, facet.id, value]));
-      for (let offset = 0; offset < tags.length; offset += 25) {
-        const group = tags.slice(offset, offset + 25);
-        statements.push(prepared('INSERT OR IGNORE INTO movie_tags(movie_id,facet,tag) VALUES ' + group.map(() => '(?,?,?)').join(','), group.flat()));
-      }
+      statements.push(prepared('DELETE FROM movie_search WHERE movie_id = ?', [movie.id]), prepared('INSERT INTO movie_search(movie_id,tokens) VALUES (?,?)', [movie.id, tokenize(document).join(' ')]));
     }
     if (statements.length) await db.batch(statements);
     cachedStats = null;
+    await prepared("DELETE FROM metadata WHERE key = 'facetCounts'").run();
     await setMetadata('catalogUpdatedAt', new Date().toISOString());
   }
   return {

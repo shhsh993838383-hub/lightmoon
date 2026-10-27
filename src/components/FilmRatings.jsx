@@ -1,4 +1,7 @@
+import { admissionReason, highScorePlatforms, movieCollectionNames } from '../lib/rating-policy.js';
+
 export default function FilmRatings({ movie, detailed = false }) {
+  const admission = admissionReason(movie);
   const ratings = [
     { id: 'tmdb', label: 'TMDB', value: movie.tmdbRating?.average, suffix: '', scale: 10, count: movie.tmdbRating?.votes },
     { id: 'douban', label: '豆瓣', value: movie.doubanRating?.average, suffix: '', scale: 10, count: movie.doubanRating?.votes },
@@ -17,5 +20,7 @@ export default function FilmRatings({ movie, detailed = false }) {
     })}</dl>
     {detailed && Number.isFinite(audience?.score) && <p className="rating-audience">烂番茄观众好评率 <strong>{Math.round(audience.score)}%</strong>{audience.verified ? ' · 认证观众' : ''}</p>}
     {detailed && <p className="rating-explanation">TMDB、豆瓣为十分制；烂番茄新鲜度表示专业影评的好评比例。评分为最近同步时的记录。</p>}
+    {admission === 'high-score' && <p className="rating-admission"><span>高分破格收录</span>{detailed && ` · ${highScorePlatforms(movie).join('、')}高于 80%，保留各平台实际评分。`}</p>}
+    {admission === 'collection' && <p className="rating-admission"><span>片单完整收录</span>{detailed && ` · ${movieCollectionNames(movie).join('、')}中的评分例外，保留各平台实际评分。`}</p>}
   </div>;
 }

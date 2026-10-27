@@ -93,3 +93,17 @@ test('D1 admission removes a film and its indexes when any refreshed score falls
     assert.equal((await kb.queryCatalog({ facets: true })).total, 0);
   } finally { storage.close(); }
 });
+
+test('D1 keeps a low-rated film while another platform exceeds 80 percent and removes it when the exception ends', async () => {
+  const storage = database(), kb = createD1KnowledgeBase(storage.db);
+  try {
+    const film = { ...facetFixtures[0], doubanRating: { average: 8.1 }, rottenTomatoesRating: { critics: { score: 45 } } };
+    await kb.upsertImported([film]);
+    assert.equal((await kb.stats()).movieCount, 1);
+    assert.equal((await kb.getByTmdb(film.tmdbId)).rottenTomatoesRating.critics.score, 45);
+    assert.ok((await kb.search('演员甲')).some(row => row.id === film.id));
+    await kb.upsertImported([{ ...film, doubanRating: { average: 8 } }]);
+    assert.equal((await kb.stats()).movieCount, 0);
+    assert.deepEqual(await kb.search('演员甲'), []);
+  } finally { storage.close(); }
+});

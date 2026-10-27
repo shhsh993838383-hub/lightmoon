@@ -226,6 +226,8 @@ svg { flex-shrink: 0; }
 .rating-scale, .rating-count { color: var(--secondary); font-size: 10px; }
 .rating-count { display: block; line-height: 1.8; margin-top: 3px; }
 .rating-explanation, .rating-audience { color: var(--secondary); font-size: 10px; line-height: 1.8; margin-top: 12px; }
+.rating-admission { color: var(--secondary); font-size: 10px; line-height: 1.8; margin-top: 8px; }
+.rating-admission span { color: var(--accent); font-weight: 650; }
 .rating-audience strong { color: var(--text); font-weight: 600; }
 .global-movie .film-ratings-compact { width: 100%; }
 .more-genres { display: inline-flex; align-items: center; min-height: 32px; gap: 4px; padding: 8px 0 0; font-size: 10px; color: var(--secondary); }

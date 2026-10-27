@@ -2,13 +2,15 @@ import { readFileSync, mkdirSync, existsSync } from 'node:fs';
 import { TmdbError } from '../server/tmdb.mjs';
 import { expandTmdbCatalog } from '../server/expand-tmdb.mjs';
 import { writeTmdbCatalog } from '../server/catalog-store.mjs';
+import knownLowRatings from '../src/data/rating-exclusions.json' with { type: 'json' };
 
 const index = process.argv.indexOf('--limit');
-const target = index < 0 ? 5000 : Number(process.argv[index + 1]);
+const target = index < 0 ? 10000 : Number(process.argv[index + 1]);
 if (existsSync('.env')) process.loadEnvFile('.env');
 const source = JSON.parse(readFileSync('server/data/initial-catalog.json', 'utf8'));
 const checkpoint = existsSync('.data/expanded-catalog.json') ? JSON.parse(readFileSync('.data/expanded-catalog.json', 'utf8')).movies : [];
-const existing = [...new Map([...source, ...checkpoint].map(movie => [movie.tmdbId, movie])).values()];
+const special = existsSync('server/data/collection-movies.json') ? JSON.parse(readFileSync('server/data/collection-movies.json', 'utf8')) : [];
+const existing = [...new Map([...knownLowRatings, ...source, ...checkpoint, ...special].map(movie => [movie.tmdbId, movie])).values()];
 mkdirSync('.data', { recursive: true });
 try {
   const result = await expandTmdbCatalog({ existing, target,

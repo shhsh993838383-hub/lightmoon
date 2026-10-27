@@ -75,7 +75,7 @@ test('TMDB throttling has bounded retries and network failures hide request secr
 });
 
 test('matching and merging keep stable saved-film ids and editorial tags', () => {
-  const seed = seeds.find(movie => movie.id === 'flipped');
+  const seed = seeds.find(movie => movie.id === 'grand-budapest');
   assert.equal(matchCuratedResult(seed, [{ id: 2, title: seed.title, release_date: `${seed.year + 1}-01-01` }, { id: 1, title: seed.title, release_date: `${seed.year}-01-01` }]).id, 1);
   const imported = normalizeTmdbMovie({ ...rawMovie(), title: seed.title, release_date: `${seed.year}-01-01` }, { curatedId: seed.id });
   const merged = mergeCatalog([seed], [imported, imported, normalizeTmdbMovie(rawMovie(990002))]);

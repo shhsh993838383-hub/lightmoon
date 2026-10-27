@@ -17,17 +17,17 @@ test('knowledge index contains real records and finds Chinese directors', () => 
 });
 
 test('natural-language exclusions and maximum duration remain hard constraints', async () => {
-  const answer = await answerQuestion({ knowledge, messages: [user('想看轻松爱情片，不要悲伤，90分钟以内')] });
+  const answer = await answerQuestion({ knowledge, messages: [user('想看轻松动画片，不要悲伤，90分钟以内')] });
   assert.equal(answer.mode, 'local');
-  assert.deepEqual(answer.recommendations.map(movie => movie.id), ['flipped']);
+  assert.deepEqual(answer.recommendations.map(movie => movie.id), ['totoro']);
 });
 
 test('follow-up keeps earlier preferences and excludes previously recommended films', async () => {
-  const messages = [user('想看爱情片'), { role: 'assistant', content: '推荐影片：怦然心动、花样年华' }, user('这两部都看过了，再轻松一点，不要悲伤的')];
+  const messages = [user('想看爱情片'), { role: 'assistant', content: '推荐影片：天使爱美丽、花样年华' }, user('这两部都看过了，再轻松一点，不要悲伤的')];
   const prefs = extractPreferences(messages, knowledge.movies);
   assert.deepEqual(prefs.positive.genre, ['爱情']);
   assert.ok(prefs.negative.mood.includes('感伤'));
-  assert.ok(prefs.excludedIds.includes('flipped'));
+  assert.ok(prefs.excludedIds.includes('amelie'));
   const answer = await answerQuestion({ knowledge, messages });
   assert.ok(answer.recommendations.length > 0);
   for (const item of answer.recommendations) assert.ok(eligible(knowledge.movies.find(movie => movie.id === item.id), prefs));
@@ -50,23 +50,23 @@ test('ordinal follow-ups exclude the first displayed movie, respecting response 
 });
 
 test('model response cannot introduce movie ids outside retrieved candidates', () => {
-  const candidates = [knowledge.movies.find(movie => movie.id === 'flipped')];
-  const result = sanitizeModelAnswer({ message: '这些适合你。', recommendations: [{ id: 'invented-film', reason: 'fake' }, { id: 'flipped', reason: '已有资料的理由' }, { id: 'flipped', reason: 'duplicate' }] }, candidates);
-  assert.deepEqual(result.recommendations.map(movie => movie.id), ['flipped']);
+  const candidates = [knowledge.movies.find(movie => movie.id === 'totoro')];
+  const result = sanitizeModelAnswer({ message: '这些适合你。', recommendations: [{ id: 'invented-film', reason: 'fake' }, { id: 'totoro', reason: '已有资料的理由' }, { id: 'totoro', reason: 'duplicate' }] }, candidates);
+  assert.deepEqual(result.recommendations.map(movie => movie.id), ['totoro']);
   assert.throws(() => sanitizeModelAnswer({ message: 'fake', recommendations: [{ id: 'invented-film', reason: 'fake' }] }, candidates), /无法与当前片库对应/);
 });
 
 test('DeepSeek adapter sends server-side credentials and grounded records using the configured model', async () => {
   let called = false;
-  const response = await answerQuestion({ knowledge, messages: [user('轻松爱情片，90分钟以内，不要悲伤')], config: { apiKey: 'test-server-only-key', model: 'test-model', baseUrl: 'https://api.deepseek.com' }, fetchImpl: async (url, options) => {
+  const response = await answerQuestion({ knowledge, messages: [user('轻松动画片，90分钟以内，不要悲伤')], config: { apiKey: 'test-server-only-key', model: 'test-model', baseUrl: 'https://api.deepseek.com' }, fetchImpl: async (url, options) => {
     called = true;
     assert.equal(url, 'https://api.deepseek.com/chat/completions');
     assert.equal(options.headers.Authorization, 'Bearer test-server-only-key');
     const body = JSON.parse(options.body);
     assert.equal(body.model, 'test-model');
-    assert.ok(body.messages[1].content.includes('flipped'));
+    assert.ok(body.messages[1].content.includes('totoro'));
     assert.ok(!body.messages[1].content.includes('inception'));
-    return Response.json({ choices: [{ message: { content: JSON.stringify({ message: '可以看看这部。', recommendations: [{ id: 'flipped', reason: '轻松爱情，90分钟。' }], followUps: ['换一部'] }) } }] });
+    return Response.json({ choices: [{ message: { content: JSON.stringify({ message: '可以看看这部。', recommendations: [{ id: 'totoro', reason: '轻松动画，90分钟以内。' }], followUps: ['换一部'] }) } }] });
   } });
   assert.ok(called);
   assert.equal(response.mode, 'deepseek');

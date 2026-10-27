@@ -7,7 +7,22 @@ export const postgresFacet = group => {
   return `COALESCE(m.data->'${group}', '[]'::jsonb)`;
 };
 
+export const d1Facet = group => {
+  if (!facets.some(facet => facet.id === group)) throw new Error('invalid_facet');
+  const field = `json_extract(m.data, '$.${group}')`;
+  if (['country', 'language', 'director'].includes(group)) return `CASE WHEN COALESCE(${field}, '') = '' THEN '[]' ELSE '[' || replace(json_quote(${field}), ' / ', '\",\"') || ']' END`;
+  if (group === 'cast') return "(SELECT json_group_array(DISTINCT json_extract(person.value, '$.name')) FROM json_each(m.data, '$.cast') person WHERE json_extract(person.value, '$.name') IS NOT NULL)";
+  if (group === 'decade') return "CASE WHEN m.year IS NULL THEN '[]' ELSE json_array(CASE WHEN m.year < 1940 THEN '1940 年前' ELSE CAST((m.year / 10) * 10 AS TEXT) || ' 年代' END) END";
+  return `COALESCE(${field}, '[]')`;
+};
+
 const tagClause = (group, values, all, params, dialect) => {
+  if (dialect === 'd1') {
+    params.push(JSON.stringify(values));
+    const selected = `SELECT COUNT(DISTINCT tag.value) FROM json_each(${d1Facet(group)}) tag WHERE tag.value IN (SELECT value FROM json_each(?))`;
+    if (all) { params.push(values.length); return `(${selected}) = ?`; }
+    return `(${selected}) > 0`;
+  }
   if (dialect === 'postgres') {
     if (facets.some(facet => facet.id === group && (facet.searchable || group === 'decade'))) {
       if (all) { params.push(JSON.stringify(values)); return postgresFacet(group) + ' @> ?::jsonb'; }
@@ -34,6 +49,7 @@ export function catalogWhere({ filters = {}, mode = 'any', ids, preferences, sea
   const clauses = [], params = [];
   const tags = (group, values, all = false) => tagClause(group, values, all, params, dialect);
   const knownTags = group => {
+    if (dialect === 'd1') return `json_array_length(${d1Facet(group)}) > 0`;
     params.push(group);
     return dialect === 'postgres' ? "jsonb_array_length(COALESCE(m.data -> ?::text, '[]'::jsonb)) > 0" : 'm.id IN (SELECT movie_id FROM movie_tags WHERE facet = ?)';
   };
@@ -85,10 +101,10 @@ export function facetSuggestionQuery({ group, query = '', filters = {}, mode = '
   const increment = combine ? `SUM(CASE WHEN ${selectedMatch} THEN 0 ELSE 1 END)` : 'COUNT(*)';
   const candidateWhere = catalogWhere({ ...options, filters: combine ? { ...normalized, [group]: [] } : normalized, mode, dialect });
   params.push(...candidateWhere.params);
-  const name = dialect === 'postgres' ? 't.value' : 't.tag';
-  const source = dialect === 'postgres' ? `movies m CROSS JOIN LATERAL jsonb_array_elements_text(${postgresFacet(group)}) AS t(value)` : 'movies m JOIN movie_tags t ON t.movie_id = m.id';
+  const name = dialect === 'sqlite' ? 't.tag' : 't.value';
+  const source = dialect === 'postgres' ? `movies m CROSS JOIN LATERAL jsonb_array_elements_text(${postgresFacet(group)}) AS t(value)` : dialect === 'd1' ? `movies m JOIN json_each(${d1Facet(group)}) t` : 'movies m JOIN movie_tags t ON t.movie_id = m.id';
   const extra = [];
-  if (dialect !== 'postgres') { extra.push('t.facet = ?'); params.push(group); }
+  if (dialect === 'sqlite') { extra.push('t.facet = ?'); params.push(group); }
   extra.push(`instr(lower(${name}), lower(?)) > 0`); params.push(query.trim().slice(0, 100));
   if (selected.length) { extra.push(`${name} NOT IN (${selected.map(() => '?').join(',')})`); params.push(...selected); }
   const sql = `SELECT ${name} AS value, ${increment} AS count FROM ${source}${candidateWhere.sql || ' WHERE 1=1'} AND ${extra.join(' AND ')} GROUP BY ${name} ORDER BY count DESC, ${name} LIMIT 12`;
