@@ -3,6 +3,7 @@ import { movieDocument, tokenize } from '../server/knowledge-document.mjs';
 import { mergeCatalog } from '../server/catalog-merge.mjs';
 import { facets, toggleFilter } from '../src/lib/catalog.js';
 import seeds from '../src/data/movies.json' with { type: 'json' };
+import { createAccountStore, communityMovieColumns, communityMovieJoin, movieWithCommunity } from '../server/accounts.mjs';
 
 export function createD1KnowledgeBase(db) {
   const prepared = (sql, params = []) => params.length ? db.prepare(sql).bind(...params) : db.prepare(sql);
@@ -31,7 +32,7 @@ export function createD1KnowledgeBase(db) {
     const offset = Math.max(0, Math.floor(Number(options.offset) || 0));
     const count = await first('SELECT COUNT(*) AS total FROM movies m' + where.sql, where.params);
     const order = catalogOrder(options, 'd1');
-    const rows = await all('SELECT m.data FROM movies m' + where.sql + ' ORDER BY ' + order.sql + ' LIMIT ? OFFSET ?', [...where.params, ...order.params, limit, offset]);
+    const rows = await all('SELECT ' + communityMovieColumns + ' FROM movies m' + communityMovieJoin + where.sql + ' ORDER BY ' + order.sql + ' LIMIT ? OFFSET ?', [...where.params, ...order.params, limit, offset]);
     let facetCounts;
     if (options.facets) {
       const filters = normalizeFilters(options.filters);
@@ -57,7 +58,7 @@ export function createD1KnowledgeBase(db) {
       if (global) await setMetadata('facetCounts', JSON.stringify(facetCounts));
       }
     }
-    return { movies: rows.map(row => JSON.parse(row.data)), total: count.total, limit, offset, ...(facetCounts ? { facetCounts } : {}) };
+    return { movies: rows.map(movieWithCommunity), total: count.total, limit, offset, ...(facetCounts ? { facetCounts } : {}) };
   }
   async function suggestFacet(options) {
     const searchIds = options.search ? (await search(options.search, 2000, { allTokens: true })).map(hit => hit.id) : undefined;
@@ -65,8 +66,8 @@ export function createD1KnowledgeBase(db) {
     const total = current ? (await first('SELECT COUNT(*) AS count FROM movies m' + current.sql, current.params)).count : 0;
     return (await all(sql, params)).map(row => ({ value: row.value, count: row.count + total }));
   }
-  async function getMovie(id) { const row = await first('SELECT data FROM movies WHERE id = ?', [id]); return row ? JSON.parse(row.data) : null; }
-  async function getByTmdb(id) { const row = await first('SELECT data FROM movies WHERE tmdb_id = ?', [id]); return row ? JSON.parse(row.data) : null; }
+  async function getMovie(id) { return movieWithCommunity(await first('SELECT ' + communityMovieColumns + ' FROM movies m' + communityMovieJoin + ' WHERE m.id=?', [id])); }
+  async function getByTmdb(id) { return movieWithCommunity(await first('SELECT ' + communityMovieColumns + ' FROM movies m' + communityMovieJoin + ' WHERE m.tmdb_id=?', [id])); }
   async function setMetadata(key, value) { await prepared('INSERT INTO metadata(key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', [key, String(value)]).run(); }
   async function upsertImported(movies) {
     if (!movies.length) return;
@@ -90,6 +91,7 @@ export function createD1KnowledgeBase(db) {
     await setMetadata('catalogUpdatedAt', new Date().toISOString());
   }
   return {
+    accounts: createAccountStore(db),
     stats, search, queryCatalog, suggestFacet, getMovie, getByTmdb, upsertImported, setMetadata,
     getMetadata: async key => (await first('SELECT value FROM metadata WHERE key = ?', [key]))?.value ?? null,
     async preferenceMovies(messages) {

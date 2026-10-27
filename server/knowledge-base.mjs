@@ -6,6 +6,8 @@ import { catalogPath, mergeCatalog, projectRoot, readTmdbCatalog, tmdbCatalogPat
 import { catalogOrder, catalogWhere, normalizeFilters, facetSuggestionQuery } from './catalog-query.mjs';
 import { facets, toggleFilter, facetValues } from '../src/lib/catalog.js';
 import { meetsRatingPolicy, ratingPolicy } from '../src/lib/rating-policy.js';
+import { createAccountStore, communityMovieColumns, communityMovieJoin, movieWithCommunity } from './accounts.mjs';
+import { sqliteD1Adapter } from './sqlite-adapter.mjs';
 
 export { projectRoot, catalogPath };
 export const knowledgeDatabasePath = resolve(projectRoot, '.data/knowledge.sqlite');
@@ -36,6 +38,8 @@ export function createKnowledgeBase({ dbPath = knowledgeDatabasePath, sourcePath
     if (!columns.has(name)) db.exec(`ALTER TABLE movies ADD COLUMN ${name} ${type}`);
   }
   db.exec('CREATE INDEX IF NOT EXISTS movies_tmdb ON movies(tmdb_id); CREATE INDEX IF NOT EXISTS movies_year ON movies(year); CREATE INDEX IF NOT EXISTS movies_minutes ON movies(minutes); CREATE INDEX IF NOT EXISTS movies_curated ON movies(curated);');
+  db.exec(readFileSync(resolve(projectRoot, 'workers/migrations/0002_accounts_community.sql'), 'utf8'));
+  db.exec('PRAGMA foreign_keys=ON;');
   const putMetadata = db.prepare('INSERT OR REPLACE INTO metadata(key, value) VALUES (?, ?)');
   const getMetadata = name => db.prepare('SELECT value FROM metadata WHERE key = ?').get(name)?.value;
   const putMovie = db.prepare(`INSERT INTO movies(id, document, data, tmdb_id, year, minutes, rating, votes, curated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -140,7 +144,7 @@ export function createKnowledgeBase({ dbPath = knowledgeDatabasePath, sourcePath
     const offset = Math.max(0, Math.floor(Number(options.offset) || 0));
     const total = db.prepare('SELECT COUNT(*) AS count FROM movies m' + where.sql).get(...where.params).count;
     const order = catalogOrder(options);
-    const movies = parseRows(db.prepare('SELECT m.data FROM movies m' + where.sql + ' ORDER BY ' + order.sql + ' LIMIT ? OFFSET ?').all(...where.params, ...order.params, limit, offset));
+    const movies = db.prepare('SELECT ' + communityMovieColumns + ' FROM movies m' + communityMovieJoin + where.sql + ' ORDER BY ' + order.sql + ' LIMIT ? OFFSET ?').all(...where.params, ...order.params, limit, offset).map(movieWithCommunity);
     let facetCounts;
     if (options.facets) {
       const filters = normalizeFilters(options.filters);
@@ -152,6 +156,7 @@ export function createKnowledgeBase({ dbPath = knowledgeDatabasePath, sourcePath
     return { movies, total, limit, offset, ...(facetCounts ? { facetCounts } : {}) };
   }
   return {
+    accounts: createAccountStore(sqliteD1Adapter(db)),
     get movies() { refresh(); return parseRows(db.prepare('SELECT data FROM movies ORDER BY rowid').all()); },
     refresh, stats, search, queryCatalog, upsertImported,
     suggestFacet(options) {
@@ -161,8 +166,8 @@ export function createKnowledgeBase({ dbPath = knowledgeDatabasePath, sourcePath
       const total = current ? db.prepare('SELECT COUNT(*) AS count FROM movies m' + current.sql).get(...current.params).count : 0;
       return db.prepare(sql).all(...params).map(row => ({ value: row.value, count: Number(row.count) + total }));
     },
-    getMovie(id) { refresh(); const row = db.prepare('SELECT data FROM movies WHERE id = ?').get(id); return row ? JSON.parse(row.data) : null; },
-    getByTmdb(id) { refresh(); const row = db.prepare('SELECT data FROM movies WHERE tmdb_id = ?').get(id); return row ? JSON.parse(row.data) : null; },
+    getMovie(id) { refresh(); return movieWithCommunity(db.prepare('SELECT ' + communityMovieColumns + ' FROM movies m' + communityMovieJoin + ' WHERE m.id=?').get(id)); },
+    getByTmdb(id) { refresh(); return movieWithCommunity(db.prepare('SELECT ' + communityMovieColumns + ' FROM movies m' + communityMovieJoin + ' WHERE m.tmdb_id=?').get(id)); },
     hasTmdb(id) { return Boolean(db.prepare('SELECT 1 FROM movies WHERE tmdb_id = ?').get(id)); },
     preferenceMovies(messages) {
       const ids = search(messages.map(message => message.content).join(' '), 200).map(hit => hit.id);

@@ -3,6 +3,7 @@ import { answerQuestion, AssistantError, validateMessages } from '../server/assi
 import { createTmdbClient, TmdbError } from '../server/tmdb.mjs';
 import { createMovieDiscovery } from '../server/movie-discovery.mjs';
 import { createDoubanClient, DoubanError, doubanCategories, doubanRegions } from '../server/douban-api.mjs';
+import { AccountError, createAccountHandler, createAccountStore } from '../server/accounts.mjs';
 
 async function readBody(request) {
   if (!(request.headers.get('Content-Type') || '').startsWith('application/json')) throw new AssistantError('请使用 JSON 格式发送消息。', 'invalid_request', 415);
@@ -24,15 +25,17 @@ async function readBody(request) {
   catch { throw new AssistantError('消息格式不正确。', 'invalid_request', 400); }
 }
 
-export function createWorkerHandler({ knowledge, config = {}, discovery, douban, allowedOrigins = [], dailyLimit = 100, fetchImpl = fetch }) {
+export function createWorkerHandler({ knowledge, accounts = knowledge?.accounts, config = {}, discovery, douban, allowedOrigins = [], dailyLimit = 100, fetchImpl = fetch }) {
+  const accountHandler = createAccountHandler({ store: accounts, knowledge });
   return async request => {
     const origin = request.headers.get('Origin');
     const headers = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', Vary: 'Origin' };
     const json = (status, value) => Response.json(value, { status, headers });
     if (origin && !allowedOrigins.includes(origin)) return json(403, { error: '此网站尚未获准使用接口。', code: 'origin_denied' });
     if (origin) headers['Access-Control-Allow-Origin'] = origin;
-    headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS';
-    headers['Access-Control-Allow-Headers'] = 'Content-Type';
+    headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+    headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
+    headers['Access-Control-Max-Age'] = '600';
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
     const url = new URL(request.url), path = url.pathname;
     const filters = () => {
@@ -44,6 +47,8 @@ export function createWorkerHandler({ knowledge, config = {}, discovery, douban,
     const ids = () => url.searchParams.has('ids') ? url.searchParams.get('ids').split(',').filter(value => /^[\w-]{1,120}$/.test(value)).slice(0, 2000) : undefined;
     try {
       if (!knowledge) return json(503, { error: '云端电影资料库尚未配置。', code: 'storage_not_configured' });
+      const accountResponse = await accountHandler({ method: request.method, url, authorization: request.headers.get('Authorization'), client: request.headers.get('CF-Connecting-IP') || 'unknown', readBody: () => readBody(request) });
+      if (accountResponse) return json(accountResponse.status, accountResponse.data);
       if (request.method === 'GET' && path === '/api/assistant/status') {
         const stats = await knowledge.stats();
         return json(stats.movieCount ? 200 : 503, { ready: stats.movieCount > 0, mode: config.apiKey ? 'deepseek' : 'local', ...stats });
@@ -86,7 +91,7 @@ export function createWorkerHandler({ knowledge, config = {}, discovery, douban,
       }
       return json(404, { error: '接口不存在。' });
     } catch (error) {
-      if (error instanceof AssistantError || error instanceof TmdbError || error instanceof DoubanError) return json(error.status, { error: error.message, code: error.code });
+      if (error instanceof AssistantError || error instanceof TmdbError || error instanceof DoubanError || error instanceof AccountError) return json(error.status, { error: error.message, code: error.code });
       if (error.message === 'invalid_facet' || error.message === 'invalid_query') return json(400, { error: '筛选或搜索条件不正确。', code: 'invalid_request' });
       return json(503, { error: '电影服务暂时不可用，请稍后重试。', code: 'service_unavailable' });
     }
@@ -102,6 +107,7 @@ export default {
       const knowledge = createD1KnowledgeBase(env.DB);
       handler = createWorkerHandler({
         knowledge,
+        accounts: createAccountStore(env.DB),
         config: { apiKey: env.DEEPSEEK_API_KEY, baseUrl: env.DEEPSEEK_BASE_URL, model: env.DEEPSEEK_MODEL },
         discovery: createMovieDiscovery({ knowledge, client: createTmdbClient({ accessToken: env.TMDB_ACCESS_TOKEN || '', apiKey: env.TMDB_API_KEY || '' }) }),
         douban: createDoubanClient(),

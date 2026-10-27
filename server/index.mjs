@@ -8,6 +8,7 @@ import { answerQuestion, AssistantError } from './assistant.mjs';
 import { createDoubanClient, DoubanError, doubanCategories, doubanRegions } from './douban.mjs';
 import { createMovieDiscovery } from './movie-discovery.mjs';
 import { TmdbError } from './tmdb.mjs';
+import { AccountError, createAccountHandler } from './accounts.mjs';
 
 const envPath = resolve(projectRoot, '.env');
 if (existsSync(envPath)) process.loadEnvFile(envPath);
@@ -36,6 +37,7 @@ async function readBody(request) {
 
 export function createAppHandler({ knowledge = createKnowledgeBase(), config = { apiKey: process.env.DEEPSEEK_API_KEY, baseUrl: process.env.DEEPSEEK_BASE_URL, model: process.env.DEEPSEEK_MODEL }, fetchImpl, douban = createDoubanClient(), discovery = createMovieDiscovery({ knowledge }) } = {}) {
   const requests = new Map();
+  const accountHandler = createAccountHandler({ store: knowledge.accounts, knowledge });
   return async (request, response) => {
     const origin = request.headers.origin;
     const allowed = (process.env.ALLOWED_ORIGINS || 'http://127.0.0.1:5173,http://127.0.0.1:8787').split(',').map(value => value.trim()).filter(Boolean);
@@ -44,11 +46,17 @@ export function createAppHandler({ knowledge = createKnowledgeBase(), config = {
       response.setHeader('Access-Control-Allow-Origin', origin);
       response.setHeader('Vary', 'Origin');
     }
-    response.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    response.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     if (request.method === 'OPTIONS') { response.writeHead(204); response.end(); return; }
     const requestUrl = new URL(request.url, 'http://localhost');
     const path = requestUrl.pathname;
+    try {
+      const result = await accountHandler({ method: request.method, url: requestUrl, authorization: request.headers.authorization, client: request.socket?.remoteAddress || 'local', readBody: () => readBody(request) });
+      if (result) return json(response, result.status, result.data);
+    } catch (error) {
+      return json(response, error instanceof AccountError || error instanceof AssistantError ? error.status : 503, { error: error instanceof AccountError || error instanceof AssistantError ? error.message : '账号服务暂时不可用，请稍后重试。', code: error.code || 'account_unavailable' });
+    }
     if (request.method === 'GET' && path === '/api/import/status') {
       const file = resolve(projectRoot, '.data/tmdb-import-state.json');
       try {
