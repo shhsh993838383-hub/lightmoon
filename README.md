@@ -6,7 +6,7 @@
 
 网站入口：[光幕 lightmoon](https://shhsh993838383-hub.github.io/lightmoon/)。源码：[GitHub 仓库](https://github.com/shhsh993838383-hub/lightmoon)。
 
-GitHub Pages 发布页面、海报和当前已收录的电影快照，不依赖本机运行。尚未配置云端 API 地址时，页面提供快照片库的搜索、筛选、详情、想看、已看记录、个人评分和主题片单，AI 页面明确显示尚未开放，不请求不存在的服务器接口。快照目前为 **2,014 部电影**，其中 2,011 部有海报，1,992 部有 TMDB 评分，367 部有核对后的豆瓣评分，1,584 部有烂番茄专业影评新鲜度。并非全球全部影片；个人想看、已看记录和评分保存在访问者自己的浏览器中。
+GitHub Pages 发布页面、海报和当前已收录的 **10,000 部电影**快照，不依赖本机运行。配置云端 API 后提供邮箱注册、账号登录、光幕评分和评论；游客可只读浏览。目录接口不可用时自动读取完整快照，保留搜索、筛选和分页。没有配置 API 时也能使用浏览器内的片库检索；它不调用 DeepSeek。
 
 `.github/workflows/pages.yml` 会在推送 `main` 后测试、构建并发布页面，自动处理 `/lightmoon/` 路径。快照从 `server/data/initial-catalog.json` 和精选资料生成。`public/catalog.json` 是构建产物，不包含密钥。
 
@@ -23,6 +23,10 @@ GitHub Pages 发布页面、海报和当前已收录的电影快照，不依赖�
 7. 确认云端状态、组合筛选、跨域及一次真实 AI 对话后，在 GitHub Actions Variables 设置 `VITE_API_BASE_URL` 为上述公开网址，运行 Publish lightmoon 工作流。
 
 `wrangler.jsonc` 默认只允许现有 GitHub Pages 来源跨域访问，AI 每个 IP 每分钟最多 12 次、站点每天最多 100 次 DeepSeek 请求；每日值可用 `AI_DAILY_LIMIT` 调整。请求限额保存在 D1，密钥只在服务端。Cloudflare 的免费额度不包含 DeepSeek API 调用费用。
+
+免费 D1 的每日读取额度耗尽时，在线 AI 会在数据库检索或限流检查处返回 `storage_daily_limit`，请求尚未到达 DeepSeek。每日额度在 UTC 00:00（北京时间早上 8 点）重置；页面提供独立的“使用本地片库检索”按钮，从 Pages 快照匹配影片，无需 D1。状态接口只说明配置和知识库状态，不代表一次真实 AI 调用已成功。
+
+现有免费数据库尚未执行 `0003_catalog_tag_index.sql`；这份迁移会回填全部标签，执行前需核算当天写入额度，不要在现有免费实例上直接运行全部远端迁移。Worker 在未回填时保持兼容。
 
 本地验证：`npx wrangler d1 migrations apply lightmoon-movies --local`，`npm run cf:seed`，`npx wrangler d1 execute lightmoon-movies --local --file .data/cloudflare-seed.sql`，`npm run cf:dev`。默认端口 8790。
 
@@ -55,7 +59,7 @@ npm run build
 npm start
 ```
 
-默认构建后可以直接访问 http://127.0.0.1:8787/ ，同一个服务提供前端文件和 API。服务默认仅监听本机；目前未实现账户和公共社区。
+默认构建后可以直接访问 http://127.0.0.1:8787/ ，同一个服务提供前端文件和 API。服务默认仅监听本机。
 
 ## DeepSeek 配置
 
@@ -118,7 +122,7 @@ npm run tmdb:sync -- --limit 120
 
 导演、演员、国家／地区、语言使用各自资料字段筛选，支持搜索名称和最多 8 项组合。国家／地区表示影片出品地，不推测演员或导演国籍；演员资料目前为每片最多 8 位主要演职员。年代来自上映年份，未知字段不能满足相关条件。相同组的“任选／全部”规则同样适用这些维度。
 
-页面每次打开会从 `/api/catalog` 读取片库，加载失败时保留本地精选供浏览。新增影片分批展示；想看与个人评分保留 TMDB 影片 ID，刷新后不会丢失。TMDB 评分与个人评分分别标明来源。
+页面每次打开会从 `/api/catalog` 读取片库，加载失败时读取 Pages 的完整快照。新增影片分批展示；影片使用稳定 ID，TMDB 评分与光幕评分分开展示。
 
 官方 Logo 保存在 `public/brand/tmdb.svg`，下载自 [TMDB Logos & Attribution](https://www.themoviedb.org/about/logos-attribution)。站内“关于与资料来源”包含官方署名：
 
@@ -148,6 +152,8 @@ API 和页面采用数据库筛选与分页，每次最多返回 200 部；前�
 
 电影卡片、搜索推荐和详情分别展示 TMDB、豆瓣、烂番茄评分。TMDB 和豆瓣是十分制；烂番茄显示专业影评好评比例，详情另列观众好评率。缺失项显示“暂无评分”，不拿其他平台或示例值补齐。
 
+“平台评分区间”支持分别设置 TMDB 0–10 分、豆瓣 0–10 分、烂番茄专业新鲜度 0–100% 的上下限。区间包含边界，跨平台同时满足，也可与导演、演员、类型等标签组合。缺少该平台评分的电影不会匹配对应区间；未设置的平台不作限制。
+
 `scripts/enrich-ratings.mjs` 根据精确 IMDb ID，通过 Wikidata 关联豆瓣 ID 和烂番茄影片路径，再读取实际评分；豆瓣同时核对片名和年份。`scripts/collect-douban-ratings.mjs` 有限读取公开榜单并缓存，`scripts/publish-catalog.mjs` 合并已核对评分到发布快照。`node --use-env-proxy scripts/enrich-ratings.mjs --input 文件 --limit 2014 --providers rotten` 可单独补烂番茄。遇到明确限流会停止该平台，未核对资料保持空缺。
 
 用户提供的 `bookyo/douban-imdb-api` 仓库只有接口说明，2026-10-27 测试其 `movie.querydata.org` 服务无法连接，未把 README 的示例评分作为影片资料。当前评分读取实现独立于该服务。
@@ -160,6 +166,6 @@ API 和页面采用数据库筛选与分页，每次最多返回 200 部；前�
 
 ## 本版范围
 
-想看与个人评分保存在当前浏览器。AI 聊天在当前页面会话中保留，切换导航后可以继续；刷新页面会清空聊天。公共评分、登录、审核、影评和自动日更仍需后续开发。全量片库是否导入完毕以实际进度为准。
+登录账号的想看、已看、光幕评分与评论保存在云端，评分范围为 1–10 分。密码最低 6 位；邮箱验证和找回密码尚未接入。AI 聊天在当前页面会话中保留，切换导航后可以继续；刷新页面会清空聊天。评论审核和自动日更仍需后续开发。全量片库是否导入完毕以实际进度为准。
 
 `docs/中国版IMDb产品定位.md` 记录产品定位、IMDb 功能观察、与豆瓣的区别，以及后续数据模型与平台规划。

@@ -1,4 +1,5 @@
 import { emptyFilters, facets } from '../src/lib/catalog.js';
+import { parseScoreRange } from '../src/lib/score-ranges.js';
 
 export const postgresFacet = group => {
   if (['country', 'language', 'director'].includes(group)) return `COALESCE(to_jsonb(string_to_array(NULLIF(m.data->>'${group}', ''), ' / ')), '[]'::jsonb)`;
@@ -42,7 +43,7 @@ const tagClause = (group, values, all, params, dialect, indexedTags = true) => {
 
 export function normalizeFilters(input = {}) {
   const result = emptyFilters();
-  for (const facet of facets) result[facet.id] = Array.isArray(input[facet.id]) ? [...new Set(input[facet.id].filter(value => typeof value === 'string' && (facet.searchable ? value.trim() === value && value.length > 0 && value.length <= 100 : facet.options.includes(value))))].slice(0, facet.searchable ? 8 : facet.options.length) : [];
+  for (const facet of facets) result[facet.id] = Array.isArray(input[facet.id]) ? [...new Set(input[facet.id].filter(value => typeof value === 'string' && (facet.range ? Boolean(parseScoreRange(facet, value)) : facet.searchable ? value.trim() === value && value.length > 0 && value.length <= 100 : facet.options.includes(value))))].slice(0, facet.range ? 1 : facet.searchable ? 8 : facet.options.length) : [];
   return result;
 }
 
@@ -56,7 +57,15 @@ export function catalogWhere({ filters = {}, mode = 'any', ids, preferences, sea
   };
   for (const [group, values] of Object.entries(normalizeFilters(filters))) {
     if (!values.length) continue;
-    if (group === 'exclude') {
+    const facet = facets.find(facet => facet.id === group);
+    if (facet.range) {
+      const { min, max } = parseScoreRange(facet, values[0]);
+      const path = facet.path.join('.');
+      const field = group === 'tmdbScore' ? 'm.rating' : dialect === 'postgres'
+        ? `(CASE WHEN jsonb_typeof(m.data #> '{${facet.path.join(',')}}')='number' THEN (m.data #>> '{${facet.path.join(',')}}')::numeric END)`
+        : `(CASE WHEN json_type(m.data, '$.${path}') IN ('integer','real') THEN json_extract(m.data, '$.${path}') END)`;
+      clauses.push(`${field} BETWEEN ? AND ?`); params.push(min, max);
+    } else if (group === 'exclude') {
       clauses.push(knownTags('mood'));
       clauses.push('NOT ' + tags('mood', values));
     } else if (group === 'duration') {

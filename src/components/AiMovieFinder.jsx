@@ -2,6 +2,8 @@ import FilmRatings from './FilmRatings.jsx';
 import { apiUrl, assetUrl, hasApi } from '../lib/urls.js';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowClockwise, ArrowRight, ArrowUpRight, Check, ChatCircleDots, FilmSlate, Heart, PaperPlaneTilt, Plus, Sparkle, Stop } from '@phosphor-icons/react';
+import { readStaticCatalog } from '../lib/static-catalog.js';
+import { findInCatalog } from '../lib/local-finder.js';
 
 const startingPrompts = [
   '今天有点累，想看轻松治愈的电影',
@@ -32,6 +34,8 @@ export default function AiMovieFinder({ movies, saved, onSave, onOpen, active })
   const [input, setInput] = useState('');
   const [status, setStatus] = useState(null);
   const [statusFailed, setStatusFailed] = useState(false);
+  const [localMode, setLocalMode] = useState(!hasApi);
+  const [localCount, setLocalCount] = useState(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const controller = useRef(null);
@@ -49,7 +53,7 @@ export default function AiMovieFinder({ movies, saved, onSave, onOpen, active })
     statusController.current = request;
     setStatusFailed(false);
     try {
-      const response = await fetch(apiUrl('/api/assistant/status'), { signal: request.signal });
+      const response = await fetch(apiUrl('/api/assistant/status'), { signal: AbortSignal.any([request.signal, AbortSignal.timeout(15000)]) });
       if (!response.ok) throw new Error();
       const result = await response.json();
       if (!result.ready || !Number.isInteger(result.movieCount)) throw new Error();
@@ -78,20 +82,30 @@ export default function AiMovieFinder({ movies, saved, onSave, onOpen, active })
     setMessages(next);
     setInput(''); setError(''); setPending(true);
     try {
-      const response = await fetch(apiUrl('/api/assistant/chat'), {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: conversationHistory(next), mode }), signal: request.signal,
-      });
-      const answer = await response.json();
+      let answer;
+      if (mode === 'local' || localMode) {
+        setLocalMode(true);
+        const snapshot = await readStaticCatalog();
+        if (request.signal.aborted || controller.current !== request) return;
+        setLocalCount(snapshot.movieCount);
+        answer = await findInCatalog(conversationHistory(next), snapshot.movies);
+      } else {
+        const response = await fetch(apiUrl('/api/assistant/chat'), {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: conversationHistory(next), mode }), signal: AbortSignal.any([request.signal, AbortSignal.timeout(55000)]),
+        });
+        answer = await response.json();
+        if (!response.ok) throw new Error(answer.error || '暂时无法完成找片，请稍后再试。');
+      }
       if (request.signal.aborted || controller.current !== request) return;
-      if (!response.ok) throw new Error(answer.error || '暂时无法完成找片，请稍后再试。');
       if (typeof answer.message !== 'string' || !Array.isArray(answer.recommendations)) throw new Error('回复不完整，请重试。');
       const responseMovies = new Map([...movies, ...(answer.movies || [])].map(movie => [movie.id, movie]));
       const recommendations = answer.recommendations.filter(item => responseMovies.has(item.id)).map(item => ({ ...responseMovies.get(item.id), reason: item.reason }));
       setMessages([...next, { role: 'assistant', content: answer.message, recommendations, followUps: answer.followUps || [], mode: answer.mode }]);
     } catch (issue) {
+      if (controller.current !== request) return;
       if (issue.name === 'AbortError') setError('本次找片已停止。你可以重试，或继续补充条件。');
-      else setError(issue.message === 'Failed to fetch' || issue instanceof TypeError ? '暂时连不上电影知识库，请确认服务已启动后重试。' : issue.message);
+      else setError(issue.name === 'TimeoutError' ? '在线找片回复超时，可以重试或使用本地片库检索。' : issue.message === 'Failed to fetch' || issue instanceof TypeError ? '暂时连不上在线服务，可以重试或使用本地片库检索。' : issue.message === 'catalog_unavailable' || issue.message === 'catalog_invalid' ? '暂时无法读取已同步的片库，请稍后重试。' : issue.message);
     } finally {
       if (controller.current === request) { controller.current = null; pendingRef.current = false; setPending(false); }
     }
@@ -103,24 +117,29 @@ export default function AiMovieFinder({ movies, saved, onSave, onOpen, active })
     inputRef.current?.focus();
   }
 
-  const last = messages.at(-1);
-  const modeLabel = status?.mode === 'deepseek' ? 'DeepSeek 对话' : status ? '片库检索' : statusFailed ? '知识库暂不可用' : '正在连接知识库';
+  function stopRequest() {
+    controller.current?.abort(); controller.current = null; pendingRef.current = false;
+    setPending(false); setError('本次找片已停止。你可以重试，或继续补充条件。');
+  }
 
-  if (!hasApi) return <section className="ai-finder" aria-label="AI 对话找电影"><div className="ai-page-heading"><div><div className="ai-page-title"><span className="ai-page-icon"><ChatCircleDots size={23} weight="fill" /></span><h1>把想看的感觉，说给我听。</h1></div><p>AI 对话即将开放。先从类型、心情和主题出发，发现下一部电影。</p></div></div><div className="ai-welcome"><div className="ai-welcome-copy"><Sparkle size={24} className="ai-welcome-spark" /><h2>好故事，<br />可以慢慢找。</h2><p>现在可以使用标签组合、电影搜索和主题片单。AI 对话开放后，你可以直接说出想看的感觉。</p></div><div className="ai-welcome-posters" aria-hidden="true">{['in-the-mood', 'walter-mitty', 'totoro'].map(id => { const movie = map.get(id); return movie && <img key={id} src={assetUrl(movie.poster)} alt="" width={movie.posterWidth} height={movie.posterHeight} />; })}</div></div></section>;
+  const last = messages.at(-1);
+  const modeLabel = localMode ? '本地片库检索' : status?.mode === 'deepseek' ? 'DeepSeek 对话' : status ? '片库检索' : statusFailed ? '在线知识库暂不可用' : '正在连接知识库';
+  const displayedCount = localMode ? localCount ?? status?.movieCount : status?.movieCount;
+  const modeNote = localMode ? '本地片库检索按已同步资料匹配条件，不调用 DeepSeek。' : status?.mode === 'deepseek' ? '本次对话与匹配的影片资料会发送至 DeepSeek。电影推荐仅供参考。' : statusFailed ? '在线服务暂不可用，可以先使用本地片库检索。' : status ? '当前使用在线片库检索。' : '正在确认在线服务状态，可以先使用本地片库检索。';
 
   return <section className="ai-finder" aria-label="AI 对话找电影">
     <div className="ai-page-heading"><div><div className="ai-page-title"><span className="ai-page-icon"><ChatCircleDots size={23} weight="fill" /></span><h1>把想看的感觉，说给我听。</h1></div><p>聊聊心情、喜欢的故事，或一部你念念不忘的电影。</p></div><button className="new-conversation" onClick={newConversation} disabled={pending || !messages.length}><Plus size={16} />新对话</button></div>
-    <div className="ai-source-status"><span><span className="knowledge-icon"><FilmSlate size={15} /></span>{status ? `已收录 ${status.movieCount} 部电影 · ${modeLabel}` : modeLabel}</span>{statusFailed && <button onClick={loadStatus}><ArrowClockwise size={13} />重新连接</button>}</div>
+    <div className="ai-source-status"><span><span className="knowledge-icon"><FilmSlate size={15} /></span>{displayedCount ? `已收录 ${displayedCount} 部电影 · ${modeLabel}` : modeLabel}</span>{hasApi && <button disabled={pending} onClick={() => setLocalMode(value => !value)}>{localMode ? '切回在线 AI' : '使用本地片库检索'}</button>}{statusFailed && !localMode && <button onClick={loadStatus}><ArrowClockwise size={13} />重新连接</button>}</div>
 
     {!messages.length ? <div className="ai-welcome"><div className="ai-welcome-copy"><Sparkle size={24} className="ai-welcome-spark" /><h2>下一部好电影，<br />从一句话开始。</h2><p>不必知道片名，先说说你想看什么。</p><div className="ai-starting-prompts">{startingPrompts.map(prompt => <button key={prompt} onClick={() => ask(prompt)} disabled={pending}><span>{prompt}</span><ArrowUpRight size={15} /></button>)}</div></div><div className="ai-welcome-posters" aria-hidden="true">{['in-the-mood', 'walter-mitty', 'totoro'].map(id => { const movie = map.get(id); return movie && <img key={id} src={assetUrl(movie.poster)} alt="" width={movie.posterWidth} height={movie.posterHeight} />; })}</div></div> : <div className="ai-conversation" role="log" aria-label="找电影对话" aria-live="polite" aria-relevant="additions">
       {messages.map((message, index) => <div className={`ai-message ai-message-${message.role}`} key={index}>{message.role === 'assistant' && <span className="ai-avatar" aria-hidden="true"><Sparkle size={19} weight="fill" /></span>}<div className="ai-message-content">{message.role === 'assistant' && <span className="ai-message-author">光幕{message.mode === 'local' ? '片库检索' : '选片助手'}</span>}<p className="ai-message-text">{message.content}</p>{message.recommendations?.length > 0 && <div className="ai-recommendations">{message.recommendations.map(movie => <Recommendation key={movie.id} movie={movie} saved={saved.includes(movie.id)} onSave={onSave} onOpen={onOpen} />)}</div>}</div></div>)}
       {pending && <div className="ai-message ai-message-assistant"><span className="ai-avatar"><Sparkle size={19} /></span><div className="ai-loading" role="status"><span>正在从电影资料中寻找合适的故事</span><div className="ai-loading-lines" aria-hidden="true"><span /><span /></div></div></div>}
     </div>}
 
-    {error && <div className="ai-error" role="alert"><p>{error}</p><div><button onClick={() => ask('', 'auto', true)}><ArrowClockwise size={13} />重试</button><button onClick={() => ask('', 'local', true)}>使用片库检索<ArrowRight size={13} /></button></div></div>}
+    {error && <div className="ai-error" role="alert"><p>{error}</p><div><button onClick={() => ask('', 'auto', true)}><ArrowClockwise size={13} />重试</button><button onClick={() => ask('', 'local', true)}>使用本地片库检索<ArrowRight size={13} /></button></div></div>}
     {!pending && !error && last?.role === 'assistant' && last.followUps?.length > 0 && <div className="ai-followups" aria-label="继续找片">{last.followUps.map(question => <button key={question} onClick={() => ask(question)}>{question}<ArrowUpRight size={12} /></button>)}</div>}
 
-    <div className="ai-composer-wrap"><form className="ai-composer" onSubmit={event => { event.preventDefault(); ask(input); }}><label className="sr-only" htmlFor="ai-movie-question">告诉我你想看什么电影</label><textarea id="ai-movie-question" ref={inputRef} value={input} maxLength={1800} rows={2} placeholder="比如：想看轻松的爱情片，不要太悲伤，两个小时以内……" onChange={event => setInput(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); ask(input); } }} /><div className="ai-composer-bottom"><span><ChatCircleDots size={14} />{messages.length ? '可以继续补充或修改条件' : '从现有电影知识库出发，为你找片'}</span>{pending ? <button type="button" className="ai-send-button" onClick={() => controller.current?.abort()}><Stop size={14} weight="fill" />停止</button> : <button type="submit" className="ai-send-button" disabled={!input.trim()}><PaperPlaneTilt size={15} weight="fill" />发送</button>}</div></form><p className="ai-mode-note">{status?.mode === 'deepseek' ? '本次对话与匹配的影片资料会发送至 DeepSeek。电影推荐仅供参考。' : '当前使用现有片库检索。接入 DeepSeek 后，可进行更灵活的 AI 对话。'}</p></div>
+    <div className="ai-composer-wrap"><form className="ai-composer" onSubmit={event => { event.preventDefault(); ask(input); }}><label className="sr-only" htmlFor="ai-movie-question">告诉我你想看什么电影</label><textarea id="ai-movie-question" ref={inputRef} value={input} maxLength={1800} rows={2} placeholder="比如：想看轻松的爱情片，不要太悲伤，两个小时以内……" onChange={event => setInput(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); ask(input); } }} /><div className="ai-composer-bottom"><span><ChatCircleDots size={14} />{messages.length ? '可以继续补充或修改条件' : '从现有电影知识库出发，为你找片'}</span>{pending ? <button type="button" className="ai-send-button" onClick={stopRequest}><Stop size={14} weight="fill" />停止</button> : <button type="submit" className="ai-send-button" disabled={!input.trim()}><PaperPlaneTilt size={15} weight="fill" />发送</button>}</div></form><p className="ai-mode-note">{modeNote}</p></div>
     <div ref={bottom} className="ai-conversation-end" />
   </section>;
 }

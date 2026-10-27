@@ -112,3 +112,19 @@ test('D1 keeps a low-rated film while another platform exceeds 80 percent and re
     assert.deepEqual(await kb.search('演员甲'), []);
   } finally { storage.close(); }
 });
+
+test('Worker reports the daily D1 limit without leaking upstream diagnostics or invoking DeepSeek', async t => {
+  const logs = [];
+  t.mock.method(console, 'error', value => logs.push(value));
+  const fail = async () => { throw new Error('D1_ERROR: exceeded free tier daily rows read; private-raw-diagnostic'); };
+  const handler = createWorkerHandler({ knowledge: { stats: fail, consumeRateLimit: fail }, config: { apiKey: 'private-test-key' }, fetchImpl: () => { assert.fail('DeepSeek must not be called after a storage error'); } });
+  const status = await handler(new Request('https://lightmoon.example/api/assistant/status'));
+  assert.equal(status.status, 503);
+  assert.equal((await status.json()).code, 'storage_daily_limit');
+  const response = await handler(new Request('https://lightmoon.example/api/assistant/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: [{ role: 'user', content: '想看喜剧' }] }) }));
+  assert.equal(response.status, 503);
+  const body = await response.json();
+  assert.equal(body.code, 'storage_daily_limit');
+  assert.match(body.error, /8 点/);
+  assert.doesNotMatch(JSON.stringify({ body, logs }), /private-raw-diagnostic|private-test-key/);
+});

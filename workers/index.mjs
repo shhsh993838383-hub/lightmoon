@@ -96,6 +96,9 @@ export function createWorkerHandler({ knowledge, accounts = knowledge?.accounts,
       // Log only known error categories, never request bodies, tokens or raw SQL.
       const categories = String(error.message || '').match(/D1_[A-Z_]+|SQLITE_[A-Z_]+|different request|I\/O|no such table|no such column|exceed|network|timeout|reset|abort|binding|internal error|rows read|rows written|per day|per query|daily|queries|duration|size|length|bound parameters|subrequest|free tier/gi) || [];
       console.error(JSON.stringify({ event: 'lightmoon_service_failure', categories }));
+      if (/D1_ERROR/i.test(String(error.message)) && /exceed/i.test(String(error.message)) && /free tier|daily/i.test(String(error.message))) {
+        return json(503, { error: '在线片库今日读取额度已用完，请在北京时间早上 8 点额度重置后重试。你仍可浏览片库，或使用本地片库检索。', code: 'storage_daily_limit' });
+      }
       return json(503, { error: '电影服务暂时不可用，请稍后重试。', code: 'service_unavailable' });
     }
   };

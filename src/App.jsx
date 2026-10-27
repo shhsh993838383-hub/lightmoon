@@ -5,6 +5,8 @@ import DoubanRankings from './components/DoubanRankings.jsx';
 import GlobalSearch from './components/GlobalSearch.jsx';
 import FilmRatings from './components/FilmRatings.jsx';
 import SearchableFacet from './components/SearchableFacet.jsx';
+import ScoreRangeFilter from './components/ScoreRangeFilter.jsx';
+import { scoreFacets, scoreRangeLabel } from './lib/score-ranges.js';
 import CollectionBrowser from './components/CollectionBrowser.jsx';
 import Dialog from './components/Dialog.jsx';
 import AuthDialog from './components/AuthDialog.jsx';
@@ -80,16 +82,17 @@ function FilterGroup({ facet, filters, mode, catalog, onToggle, facetCounts }) {
   </section>;
 }
 
-function FilterPanel({ filters, mode, onMode, catalog, onToggle, onReset, onClose, total, facetCounts, scope, usingSnapshot }) {
+function FilterPanel({ filters, mode, onMode, catalog, onToggle, onScoreRange, onReset, onClose, total, facetCounts, scope, usingSnapshot }) {
   const activeCount = Object.values(filters).flat().length;
   return <div className="filter-panel">
     <div className="filter-panel-header"><span><SlidersHorizontal size={18} weight="bold" />筛选电影</span>{onClose ? <button className="icon-button" onClick={onClose} aria-label="关闭筛选"><X /></button> : <button className="reset-button" onClick={onReset} disabled={!activeCount}><ArrowCounterClockwise size={13} />重置</button>}</div>
     <div className="filter-rule"><label htmlFor={onClose ? 'match-mode-mobile' : 'match-mode'}>标签组合</label><span className="select-wrap"><select id={onClose ? 'match-mode-mobile' : 'match-mode'} value={mode} onChange={event => onMode(event.target.value)}><option value="any">同组任选</option><option value="all">同组全部</option></select><CaretDown size={12} /></span></div>
     <p className="filter-explanation">{mode === 'any' ? '同组满足任一项，跨组同时满足。' : '同时满足所有选中的标签。'}</p>
     <FilterGroup facet={facets[0]} {...{ filters, mode, catalog, onToggle, facetCounts }} />
+    <details className="advanced-filters score-range-panel" open><summary>平台评分区间<CaretDown size={14} /></summary><p className="score-range-note">三项可组合，区间包含边界。<br />缺少该平台评分的电影不参与匹配。</p>{scoreFacets.map(facet => <ScoreRangeFilter key={facet.id} facet={facet} value={filters[facet.id][0]} onChange={onScoreRange} />)}</details>
     <details className="advanced-filters people-filters" open><summary>导演、演员与地区<CaretDown size={14} /></summary>{['director', 'cast', 'country'].map(id => facets.find(facet => facet.id === id)).map(facet => <SearchableFacet key={facet.id} {...{ facet, filters, mode, catalog, scope, onToggle, usingSnapshot }} />)}</details>
     {facets.filter(facet => ['mood', 'theme'].includes(facet.id)).map(facet => <FilterGroup key={facet.id} {...{ facet, filters, mode, catalog, onToggle, facetCounts }} />)}
-    <details className="advanced-filters"><summary>年代、语言与更多筛选<CaretDown size={14} /></summary>{facets.filter(facet => !['genre', 'mood', 'theme', 'director', 'cast', 'country'].includes(facet.id)).map(facet => facet.searchable ? <SearchableFacet key={facet.id} {...{ facet, filters, mode, catalog, scope, onToggle, usingSnapshot }} /> : <FilterGroup key={facet.id} {...{ facet, filters, mode, catalog, onToggle, facetCounts }} />)}</details>
+    <details className="advanced-filters"><summary>年代、语言与更多筛选<CaretDown size={14} /></summary>{facets.filter(facet => !facet.range && !['genre', 'mood', 'theme', 'director', 'cast', 'country'].includes(facet.id)).map(facet => facet.searchable ? <SearchableFacet key={facet.id} {...{ facet, filters, mode, catalog, scope, onToggle, usingSnapshot }} /> : <FilterGroup key={facet.id} {...{ facet, filters, mode, catalog, onToggle, facetCounts }} />)}</details>
     <p className="filter-footnote">标签旁的数字表示点选后的电影数。<br />观感与主题仅匹配已完成标注的电影。</p>
     {onClose && <div className="filter-mobile-action"><button className="primary-button" onClick={onClose}>查看 {total} 部电影<ArrowRight size={17} /></button><button className="text-button" onClick={onReset} disabled={!activeCount}>清空条件</button></div>}
   </div>;
@@ -167,11 +170,12 @@ export default function App() {
   const found = catalog.result?.movies || fallback.slice(0, 40);
   const resultCount = catalog.result?.total ?? fallback.length;
   const movieCount = catalog.result?.movieCount ?? movies.length;
-  const active = facets.flatMap(facet => filters[facet.id].map(value => ({ group: facet.id, groupLabel: facet.label, value })));
+  const active = facets.flatMap(facet => filters[facet.id].map(value => ({ group: facet.id, groupLabel: facet.label, value, label: facet.range ? scoreRangeLabel(facet, value) : facet.id === 'exclude' ? '排除 ' + value : value })));
   const isFiltered = active.length > 0 || query.trim().length > 0;
   const showFeature = view === 'all' && !isFiltered;
   const navigate = next => { if (next === 'ai') setAiVisited(true); setView(next); setSelectedCollection(null); setSort(current => current === 'collection' ? 'curated' : current); setQuery(''); setFilters(emptyFilters()); setMobileFilters(false); };
   const toggle = (group, value) => setFilters(current => toggleFilter(current, group, value));
+  const changeScoreRange = (group, value) => setFilters(current => ({ ...current, [group]: value ? [value] : [] }));
   const reset = () => { setFilters(emptyFilters()); setQuery(''); };
 
   useEffect(() => {
@@ -220,7 +224,7 @@ export default function App() {
   }
 
   const relaxations = facets.filter(facet => filters[facet.id].length).map(facet => ({ ...facet, count: library.filter(movie => matchesFilters(movie, { ...filters, [facet.id]: [] }, mode)).length })).filter(facet => facet.count > 0).sort((a, b) => b.count - a.count).slice(0, 3);
-  const filterProps = { filters, mode, onMode: setMode, catalog: library, onToggle: toggle, onReset: reset, total: resultCount, facetCounts: catalog.result?.facetCounts, usingSnapshot: catalog.usingSnapshot, scope: { search: query, ids: view === 'saved' ? saved : view === 'watched' ? watched : view === 'collection' ? [...collectionIds.keys()] : undefined } };
+  const filterProps = { filters, mode, onMode: setMode, catalog: library, onToggle: toggle, onScoreRange: changeScoreRange, onReset: reset, total: resultCount, facetCounts: catalog.result?.facetCounts, usingSnapshot: catalog.usingSnapshot, scope: { search: query, ids: view === 'saved' ? saved : view === 'watched' ? watched : view === 'collection' ? [...collectionIds.keys()] : undefined } };
   const navView = view === 'collection' ? 'collections' : view;
   const navItems = [{ id: 'all', label: '发现电影', Icon: Compass }, { id: 'collections', label: '主题片单', Icon: Stack }, { id: 'ai', label: 'AI 找电影', Icon: ChatCircleDots }, { id: 'saved', label: '我的想看', Icon: Heart }, { id: 'watched', label: '我已看过', Icon: CheckCircle }];
 
@@ -244,7 +248,7 @@ export default function App() {
           {view === 'all' && <section className="quick-moods" aria-label="按心情快速选择"><span className="quick-label">今天想要</span><div>{quickMoods.map(({ label, value, Icon }) => <button key={value} className="mood-button" aria-pressed={filters.mood.includes(value)} onClick={() => toggle('mood', value)}><Icon size={16} />{label}</button>)}</div></section>}
           <section className="library-results" ref={resultsRef} aria-label="筛选结果">
             <div className="library-toolbar"><div className="library-title"><h2>{view === 'collection' ? '片单电影' : view === 'watched' ? '我已看过' : view === 'saved' ? '我的想看' : isFiltered ? '为你找到' : '探索电影'}</h2><span className="result-count" aria-live="polite">{resultCount}<span> 部</span></span></div><div className="library-actions"><button className="mobile-filter-button" onClick={() => setMobileFilters(true)}><SlidersHorizontal size={17} />筛选{active.length > 0 && <span>{active.length}</span>}</button><span className="sort-select select-wrap"><label className="sr-only" htmlFor="movie-sort">电影排序</label><select id="movie-sort" value={sort} onChange={event => setSort(event.target.value)}>{view === 'collection' && <option value="collection">{selectedCollection.order === 'rank' ? '榜单排名' : '上映顺序'}</option>}<option value="curated">精选顺序</option><option value="newest">上映由新到旧</option><option value="oldest">上映由旧到新</option><option value="shortest">片长由短到长</option><option value="rating">TMDB 评分由高到低</option></select><CaretDown size={13} /></span></div></div>
-            {active.length > 0 && <div className="active-filters" aria-label="当前筛选条件">{active.map(item => <button key={`${item.group}-${item.value}`} onClick={() => toggle(item.group, item.value)} aria-label={`移除${item.groupLabel}：${item.value}`}>{item.group === 'exclude' ? '排除 ' : ''}{item.value}<X size={12} /></button>)}<button className="clear-all" onClick={reset}>清空</button></div>}
+            {active.length > 0 && <div className="active-filters" aria-label="当前筛选条件">{active.map(item => <button key={`${item.group}-${item.value}`} onClick={() => toggle(item.group, item.value)} aria-label={`移除${item.groupLabel}：${item.label}`}>{item.label}<X size={12} /></button>)}<button className="clear-all" onClick={reset}>清空</button></div>}
             {found.length ? <div className="movie-grid">{found.map((movie, index) => <MovieCard key={movie.id} movie={movie} saved={saved.includes(movie.id)} watched={watched.includes(movie.id)} onSave={saveMovie} onWatched={markWatched} onOpen={setSelectedMovie} eager={index < 5} rank={view === 'collection' && selectedCollection.order === 'rank' ? selectedCollection.movies.find(item => item.tmdbId === movie.tmdbId)?.rank : undefined} />)}</div> : <div className="empty-state"><span className="empty-icon">{view === 'watched' && !watched.length ? <CheckCircle size={34} /> : view === 'saved' && !saved.length ? <Heart size={34} /> : <MagnifyingGlass size={34} />}</span><h3>{view === 'watched' && !watched.length ? '看过的电影，值得留个位置。' : view === 'saved' && !saved.length ? '下一部想看的，先放在这里。' : '暂时没有符合条件的电影'}</h3><p>{view === 'watched' && !watched.length ? '点击电影卡片或详情中的“标记已看”，把回忆收进这份片单。' : view === 'saved' && !saved.length ? '点一下电影旁的爱心，就能收藏到这份片单。' : query ? '换一个关键词，或放宽一些标签再试试。' : '试着少选一个条件，让故事有更多可能。'}</p><div className="empty-actions">{(view === 'saved' && !saved.length || view === 'watched' && !watched.length) ? <button className="primary-button" onClick={() => navigate('all')}>去发现电影<ArrowRight size={17} /></button> : <>{relaxations.map(facet => <button key={facet.id} className="secondary-button" onClick={() => setFilters(current => ({ ...current, [facet.id]: [] }))}>移除{facet.label}<span>{facet.count} 部</span></button>)}<button className="text-button" onClick={reset}>清空筛选与搜索</button></>}</div></div>}
             {resultCount > found.length && <div className="load-more"><button className="secondary-button" disabled={catalog.loading} onClick={catalog.loadMore}>{catalog.loading ? '正在加载…' : '再看更多电影'}<CaretDown size={14} /></button><span>已展示 {found.length} / {resultCount} 部</span></div>}
             <footer className="library-footer"><FilmSlate size={16} /><span>{catalogState.loading ? '正在读取片库…' : '片库已收录 ' + movieCount.toLocaleString('zh-CN') + ' 部电影。'}</span></footer>

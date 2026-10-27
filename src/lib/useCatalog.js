@@ -1,21 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import seedMovies from '../data/movies.json';
-import { apiUrl, assetUrl, hasApi } from './urls.js';
+import { apiUrl, hasApi } from './urls.js';
 import { facets, matchesFilters, matchesQuery, sortMovies, toggleFilter } from './catalog.js';
 import { meetsRatingPolicy } from './rating-policy.js';
-
-let staticCatalog;
-async function readStaticCatalog() {
-  // Let the visible film artwork load ahead of the full offline catalog.
-  if (!staticCatalog) staticCatalog = fetch(assetUrl('/catalog.json'), { priority: 'low' }).then(async response => {
-    if (!response.ok) throw new Error('catalog_unavailable');
-    const data = await response.json();
-    if (!Array.isArray(data.movies)) throw new Error('catalog_invalid');
-    const movies = data.movies.filter(meetsRatingPolicy);
-    return { ...data, movies, movieCount: movies.length, tmdbCount: movies.filter(movie => movie.tmdbId).length };
-  }).catch(error => { staticCatalog = null; throw error; });
-  return staticCatalog;
-}
+import { readStaticCatalog } from './static-catalog.js';
 
 export default function useCatalog({ query, filters, mode, sort, saved, watched, view, collection, revision }) {
   const [movies, setMovies] = useState(() => seedMovies.filter(meetsRatingPolicy));

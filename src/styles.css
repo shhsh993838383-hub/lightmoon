@@ -138,6 +138,25 @@ svg { flex-shrink: 0; }
 .filter-footnote { color: var(--muted); font-size: 10px; line-height: 1.9; margin-top: 26px; }
 .filter-mobile-action { display: flex; gap: 9px; margin-top: 26px; align-items: center; }
 .filter-mobile-action .primary-button { flex: 1; }
+.score-range-note { margin-top: 10px; color: var(--muted); font-size: 10px; line-height: 1.8; }
+.score-range-filter { margin-top: 20px; }
+.score-range-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 9px; }
+.score-range-heading h3 { font-size: 12px; font-weight: 650; display: flex; align-items: baseline; gap: 7px; }
+.score-range-heading h3 span { color: var(--muted); font-size: 9px; font-weight: 400; }
+.score-range-heading > button { color: var(--accent); font-size: 10px; padding: 4px 0; }
+.score-range-inputs { display: grid; grid-template-columns: minmax(0,1fr) 12px minmax(0,1fr) 30px; gap: 6px; align-items: end; }
+.score-range-inputs label { min-width: 0; color: var(--muted); font-size: 9px; }
+.score-range-inputs label span { display: block; margin-bottom: 5px; }
+.score-range-inputs input { width: 100%; min-width: 0; height: 34px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--header); color: var(--text); font-size: 12px; font-variant-numeric: tabular-nums; }
+.score-range-inputs input::placeholder { color: var(--muted); }
+.score-range-divider { align-self: end; line-height: 34px; color: var(--muted); text-align: center; font-size: 10px; }
+.score-range-apply { display: flex; align-items: center; justify-content: center; height: 34px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); }
+.score-range-apply:hover { background: var(--accent); color: var(--accent-text); }
+.score-range-presets { display: flex; gap: 6px; margin-top: 8px; }
+.score-range-presets button { flex: 1; padding: 5px 3px; border: 1px solid var(--line); border-radius: 6px; background: var(--header); color: var(--secondary); font-size: 10px; font-variant-numeric: tabular-nums; }
+.score-range-presets button:hover, .score-range-presets button[aria-pressed="true"] { border-color: var(--accent-border); background: var(--accent-soft); color: var(--accent); }
+.score-range-error { margin-top: 7px; color: var(--accent); font-size: 10px; line-height: 1.7; }
+@media (max-width: 767px) { .score-range-inputs { grid-template-columns: minmax(0,1fr) 14px minmax(0,1fr) 42px; } .score-range-inputs input, .score-range-apply { height: 42px; } .score-range-presets button { min-height: 36px; } .score-range-divider { line-height: 42px; } }
 
 .main-content { min-width: 0; padding-bottom: 28px; }
 .page-intro { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 30px; }
@@ -679,10 +698,10 @@ dialog::backdrop { background: rgb(8 10 12 / .68); backdrop-filter: blur(5px); }
 .ai-page-heading > div > p { color: var(--secondary); font-size: 12px; margin-top: 8px; line-height: 1.8; }
 .new-conversation { display: flex; gap: 6px; align-items: center; font-size: 12px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 6px; flex-shrink: 0; }
 .new-conversation:hover:enabled { border-color: var(--accent-border); color: var(--accent); }
-.ai-source-status { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 19px; font-size: 11px; color: var(--muted); }
-.ai-source-status > span { display: flex; align-items: center; gap: 8px; }
+.ai-source-status { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 19px; font-size: 11px; color: var(--muted); }
+.ai-source-status > span { display: flex; flex: 1 1 220px; align-items: center; gap: 8px; }
 .knowledge-icon { display: flex; }
-.ai-source-status button { display: inline-flex; gap: 5px; align-items: center; color: var(--accent); }
+.ai-source-status button { display: inline-flex; flex-shrink: 0; gap: 5px; align-items: center; color: var(--accent); white-space: nowrap; }
 .ai-welcome { display: grid; grid-template-columns: 1fr .85fr; align-items: center; gap: 45px; padding: 48px 15px 44px; min-height: 410px; }
 .ai-welcome-spark { color: var(--accent); margin-bottom: 15px; }
 .ai-welcome h2 { font-size: 36px; line-height: 1.45; font-weight: 600; letter-spacing: -.8px; }

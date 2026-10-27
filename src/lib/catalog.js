@@ -1,3 +1,5 @@
+import { scoreFacets, matchesScoreRange, parseScoreRange } from './score-ranges.js';
+
 export const facets = [
   { id: 'genre', label: '电影类型', options: ['剧情', '喜剧', '爱情', '科幻', '悬疑', '动画', '奇幻', '动作', '冒险', '犯罪', '纪录片', '家庭', '历史', '恐怖', '音乐', '惊悚', '战争', '西部', '电视电影'] },
   { id: 'mood', label: '想要的感觉', options: ['轻松有趣', '温暖', '浪漫', '感伤', '紧张', '荒诞'] },
@@ -11,12 +13,15 @@ export const facets = [
   { id: 'structure', label: '叙事方式', options: ['顺叙为主', '多线叙事', '时间循环', '框架叙事', '多层梦境'] },
   { id: 'duration', label: '有多少时间', options: ['100 分钟以内', '101-120 分钟', '120 分钟以上'] },
   { id: 'exclude', label: '暂时不想看', options: ['感伤', '紧张', '荒诞'] },
+  ...scoreFacets,
 ];
 
 export const emptyFilters = () => Object.fromEntries(facets.map(facet => [facet.id, []]));
 
 export function toggleFilter(filters, group, value) {
   const selected = filters[group] || [];
+  const facet = facets.find(facet => facet.id === group);
+  if (facet?.range) return { ...filters, [group]: selected.includes(value) || !parseScoreRange(facet, value) ? [] : [value] };
   const next = { ...filters, [group]: selected.includes(value) ? selected.filter(item => item !== value) : [...selected, value] };
   if (next[group].includes(value)) {
     if (group === 'mood') next.exclude = filters.exclude.filter(item => item !== value);
@@ -58,6 +63,7 @@ export function matchesFilters(movie, filters, mode = 'any') {
   return facets.every(facet => {
     const selected = filters[facet.id] || [];
     if (!selected.length) return true;
+    if (facet.range) return selected.length === 1 && matchesScoreRange(movie, facet, selected[0]);
     if (facet.id === 'exclude') return movie.mood.length > 0 && !selected.some(value => movie.mood.includes(value));
     const values = facetValues(movie, facet.id);
     return mode === 'all' ? selected.every(value => values.includes(value)) : selected.some(value => values.includes(value));
