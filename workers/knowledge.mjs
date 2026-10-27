@@ -17,14 +17,14 @@ export function createD1KnowledgeBase(db) {
     cachedStats = { at: Date.now(), value };
     return value;
   }
-  async function search(query, limit = 30) {
+  async function search(query, limit = 30, { allTokens = false } = {}) {
     const tokens = [...new Set(tokenize(query))].slice(0, 80);
     if (!tokens.length) return [];
-    const expression = tokens.map(token => '"' + token.replaceAll('"', '""') + '"').join(' OR ');
+    const expression = tokens.map(token => '"' + token.replaceAll('"', '""') + '"').join(allTokens ? ' AND ' : ' OR ');
     return all('SELECT movie_id AS id, bm25(movie_search) AS score FROM movie_search WHERE movie_search MATCH ? ORDER BY score LIMIT ?', [expression, Math.max(1, Math.min(2000, limit))]);
   }
   async function queryCatalog(options = {}) {
-    const searchIds = options.query?.trim() ? (await search(options.query.trim().slice(0, 160), 2000)).map(hit => hit.id) : undefined;
+    const searchIds = options.query?.trim() ? (await search(options.query.trim().slice(0, 160), 2000, { allTokens: true })).map(hit => hit.id) : undefined;
     const input = { ...options, searchIds, dialect: 'd1' };
     const where = catalogWhere(input);
     const limit = Math.max(1, Math.min(200, Math.floor(Number(options.limit) || 40)));
@@ -60,7 +60,7 @@ export function createD1KnowledgeBase(db) {
     return { movies: rows.map(row => JSON.parse(row.data)), total: count.total, limit, offset, ...(facetCounts ? { facetCounts } : {}) };
   }
   async function suggestFacet(options) {
-    const searchIds = options.search ? (await search(options.search, 2000)).map(hit => hit.id) : undefined;
+    const searchIds = options.search ? (await search(options.search, 2000, { allTokens: true })).map(hit => hit.id) : undefined;
     const { sql, params, current } = facetSuggestionQuery({ ...options, searchIds }, 'd1');
     const total = current ? (await first('SELECT COUNT(*) AS count FROM movies m' + current.sql, current.params)).count : 0;
     return (await all(sql, params)).map(row => ({ value: row.value, count: row.count + total }));

@@ -118,11 +118,11 @@ export function createKnowledgeBase({ dbPath = knowledgeDatabasePath, sourcePath
   }
   refresh();
   const parseRows = rows => rows.map(row => JSON.parse(row.data));
-  function search(query, limit = 30) {
+  function search(query, limit = 30, { allTokens = false } = {}) {
     refresh();
     const tokens = [...new Set(tokenize(query))].slice(0, 80);
     if (!tokens.length) return [];
-    const expression = tokens.map(token => '"' + token.replaceAll('"', '""') + '"').join(' OR ');
+    const expression = tokens.map(token => '"' + token.replaceAll('"', '""') + '"').join(allTokens ? ' AND ' : ' OR ');
     return db.prepare('SELECT movie_id AS id, bm25(movie_search) AS score FROM movie_search WHERE movie_search MATCH ? ORDER BY score LIMIT ?').all(expression, limit);
   }
   function stats() {
@@ -133,7 +133,7 @@ export function createKnowledgeBase({ dbPath = knowledgeDatabasePath, sourcePath
   function queryCatalog(options = {}) {
     refresh();
     const query = String(options.query || '').trim().slice(0, 160);
-    const searchIds = query ? search(query, 2000).map(hit => hit.id) : undefined;
+    const searchIds = query ? search(query, 2000, { allTokens: true }).map(hit => hit.id) : undefined;
     const input = { ...options, searchIds };
     const where = catalogWhere(input);
     const limit = Math.max(1, Math.min(200, Number(options.limit) || 40));
@@ -156,7 +156,7 @@ export function createKnowledgeBase({ dbPath = knowledgeDatabasePath, sourcePath
     refresh, stats, search, queryCatalog, upsertImported,
     suggestFacet(options) {
       refresh();
-      const searchIds = options.search ? search(options.search, 2000).map(hit => hit.id) : undefined;
+      const searchIds = options.search ? search(options.search, 2000, { allTokens: true }).map(hit => hit.id) : undefined;
       const { sql, params, current } = facetSuggestionQuery({ ...options, searchIds });
       const total = current ? db.prepare('SELECT COUNT(*) AS count FROM movies m' + current.sql).get(...current.params).count : 0;
       return db.prepare(sql).all(...params).map(row => ({ value: row.value, count: Number(row.count) + total }));

@@ -24,6 +24,7 @@ test('database filtering agrees with the frontend for individual and combined ta
     assert.deepEqual(knowledge.queryCatalog({ ids: ['flipped'] }).movies.map(movie => movie.id), ['flipped']);
     const ids = ['totoro', 'flipped', 'inception'];
     assert.deepEqual(knowledge.queryCatalog({ ids, sort: 'collection', limit: 2, offset: 1 }).movies.map(movie => movie.id), ids.slice(1));
+    assert.deepEqual(knowledge.queryCatalog({ query: '怦然心动' }).movies.map(movie => movie.id), ['flipped']);
   } finally { knowledge.close(); }
 });
 

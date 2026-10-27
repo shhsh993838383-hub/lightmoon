@@ -70,17 +70,17 @@ export function createCloudKnowledgeBase({ url = process.env.DATABASE_URL, query
     cachedStats = { at: Date.now(), value };
     return value;
   }
-  async function search(query, limit = 30) {
+  async function search(query, limit = 30, { allTokens = false } = {}) {
     await initialize();
     const tokens = [...new Set(tokenize(query))].slice(0, 80);
     if (!tokens.length) return [];
-    const expression = tokens.map(token => "'" + token.replaceAll("'", "''") + "'").join(' | ');
+    const expression = tokens.map(token => "'" + token.replaceAll("'", "''") + "'").join(allTokens ? ' & ' : ' | ');
     return execute("SELECT id, -ts_rank(tokens, to_tsquery('simple', ?)) AS score FROM movies WHERE tokens @@ to_tsquery('simple', ?) ORDER BY score, sequence LIMIT ?", [expression, expression, Math.max(1, Math.min(2000, limit))]);
   }
   async function queryCatalog(options = {}) {
     await initialize();
     const query = String(options.query || '').trim().slice(0, 160);
-    const searchIds = query ? (await search(query, 2000)).map(hit => hit.id) : undefined;
+    const searchIds = query ? (await search(query, 2000, { allTokens: true })).map(hit => hit.id) : undefined;
     const input = { ...options, searchIds, dialect: 'postgres' };
     const where = catalogWhere(input);
     const limit = Math.max(1, Math.min(200, Number(options.limit) || 40));
@@ -129,7 +129,7 @@ export function createCloudKnowledgeBase({ url = process.env.DATABASE_URL, query
     initialize, stats, search, queryCatalog, getMovie, getByTmdb, upsertImported,
     async suggestFacet(options) {
       await initialize();
-      const searchIds = options.search ? (await search(options.search, 2000)).map(hit => hit.id) : undefined;
+      const searchIds = options.search ? (await search(options.search, 2000, { allTokens: true })).map(hit => hit.id) : undefined;
       const { sql, params, current } = facetSuggestionQuery({ ...options, searchIds }, 'postgres');
       const total = current ? Number((await execute('SELECT COUNT(*) AS count FROM movies m' + current.sql, current.params))[0].count) : 0;
       return (await execute(sql, params)).map(row => ({ value: row.value, count: Number(row.count) + total }));
