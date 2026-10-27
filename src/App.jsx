@@ -80,16 +80,16 @@ function FilterGroup({ facet, filters, mode, catalog, onToggle, facetCounts }) {
   </section>;
 }
 
-function FilterPanel({ filters, mode, onMode, catalog, onToggle, onReset, onClose, total, facetCounts, scope }) {
+function FilterPanel({ filters, mode, onMode, catalog, onToggle, onReset, onClose, total, facetCounts, scope, usingSnapshot }) {
   const activeCount = Object.values(filters).flat().length;
   return <div className="filter-panel">
     <div className="filter-panel-header"><span><SlidersHorizontal size={18} weight="bold" />筛选电影</span>{onClose ? <button className="icon-button" onClick={onClose} aria-label="关闭筛选"><X /></button> : <button className="reset-button" onClick={onReset} disabled={!activeCount}><ArrowCounterClockwise size={13} />重置</button>}</div>
     <div className="filter-rule"><label htmlFor={onClose ? 'match-mode-mobile' : 'match-mode'}>标签组合</label><span className="select-wrap"><select id={onClose ? 'match-mode-mobile' : 'match-mode'} value={mode} onChange={event => onMode(event.target.value)}><option value="any">同组任选</option><option value="all">同组全部</option></select><CaretDown size={12} /></span></div>
     <p className="filter-explanation">{mode === 'any' ? '同组满足任一项，跨组同时满足。' : '同时满足所有选中的标签。'}</p>
     <FilterGroup facet={facets[0]} {...{ filters, mode, catalog, onToggle, facetCounts }} />
-    <details className="advanced-filters people-filters" open><summary>导演、演员与地区<CaretDown size={14} /></summary>{['director', 'cast', 'country'].map(id => facets.find(facet => facet.id === id)).map(facet => <SearchableFacet key={facet.id} {...{ facet, filters, mode, catalog, scope, onToggle }} />)}</details>
+    <details className="advanced-filters people-filters" open><summary>导演、演员与地区<CaretDown size={14} /></summary>{['director', 'cast', 'country'].map(id => facets.find(facet => facet.id === id)).map(facet => <SearchableFacet key={facet.id} {...{ facet, filters, mode, catalog, scope, onToggle, usingSnapshot }} />)}</details>
     {facets.filter(facet => ['mood', 'theme'].includes(facet.id)).map(facet => <FilterGroup key={facet.id} {...{ facet, filters, mode, catalog, onToggle, facetCounts }} />)}
-    <details className="advanced-filters"><summary>年代、语言与更多筛选<CaretDown size={14} /></summary>{facets.filter(facet => !['genre', 'mood', 'theme', 'director', 'cast', 'country'].includes(facet.id)).map(facet => facet.searchable ? <SearchableFacet key={facet.id} {...{ facet, filters, mode, catalog, scope, onToggle }} /> : <FilterGroup key={facet.id} {...{ facet, filters, mode, catalog, onToggle, facetCounts }} />)}</details>
+    <details className="advanced-filters"><summary>年代、语言与更多筛选<CaretDown size={14} /></summary>{facets.filter(facet => !['genre', 'mood', 'theme', 'director', 'cast', 'country'].includes(facet.id)).map(facet => facet.searchable ? <SearchableFacet key={facet.id} {...{ facet, filters, mode, catalog, scope, onToggle, usingSnapshot }} /> : <FilterGroup key={facet.id} {...{ facet, filters, mode, catalog, onToggle, facetCounts }} />)}</details>
     <p className="filter-footnote">标签旁的数字表示点选后的电影数。<br />观感与主题仅匹配已完成标注的电影。</p>
     {onClose && <div className="filter-mobile-action"><button className="primary-button" onClick={onClose}>查看 {total} 部电影<ArrowRight size={17} /></button><button className="text-button" onClick={onReset} disabled={!activeCount}>清空条件</button></div>}
   </div>;
@@ -157,15 +157,15 @@ export default function App() {
   const resultsRef = useRef(null);
   const catalog = useCatalog({ query, filters, mode, sort, saved, watched, view, collection: selectedCollection, revision: catalogVersion });
   const { movies } = catalog;
-  const catalogState = { loading: catalog.loading, error: catalog.error, updatedAt: catalog.result?.catalogUpdatedAt, tmdbCount: catalog.result?.tmdbCount };
+  const catalogState = { loading: catalog.loading, error: catalog.error, usingSnapshot: hasApi && catalog.usingSnapshot, updatedAt: catalog.result?.catalogUpdatedAt, tmdbCount: catalog.result?.tmdbCount };
   const collectionIds = useMemo(() => new Map((selectedCollection?.movies || []).map((movie, index) => [movie.id, index])), [selectedCollection]);
   const library = useMemo(() => movies.filter(movie => (view !== 'saved' || saved.includes(movie.id)) && (view !== 'watched' || watched.includes(movie.id)) && (view !== 'collection' || collectionIds.has(movie.id)) && matchesQuery(movie, query)), [movies, view, saved, watched, query, collectionIds]);
   const fallback = useMemo(() => {
     const eligible = library.filter(movie => matchesFilters(movie, filters, mode));
     return sort === 'collection' ? eligible.sort((a, b) => collectionIds.get(a.id) - collectionIds.get(b.id)) : sortMovies(eligible, sort);
   }, [library, filters, mode, sort, collectionIds]);
-  const found = catalog.result?.movies || fallback;
-  const resultCount = catalog.result?.total ?? found.length;
+  const found = catalog.result?.movies || fallback.slice(0, 40);
+  const resultCount = catalog.result?.total ?? fallback.length;
   const movieCount = catalog.result?.movieCount ?? movies.length;
   const active = facets.flatMap(facet => filters[facet.id].map(value => ({ group: facet.id, groupLabel: facet.label, value })));
   const isFiltered = active.length > 0 || query.trim().length > 0;
@@ -220,7 +220,7 @@ export default function App() {
   }
 
   const relaxations = facets.filter(facet => filters[facet.id].length).map(facet => ({ ...facet, count: library.filter(movie => matchesFilters(movie, { ...filters, [facet.id]: [] }, mode)).length })).filter(facet => facet.count > 0).sort((a, b) => b.count - a.count).slice(0, 3);
-  const filterProps = { filters, mode, onMode: setMode, catalog: library, onToggle: toggle, onReset: reset, total: resultCount, facetCounts: catalog.result?.facetCounts, scope: { search: query, ids: view === 'saved' ? saved : view === 'watched' ? watched : view === 'collection' ? [...collectionIds.keys()] : undefined } };
+  const filterProps = { filters, mode, onMode: setMode, catalog: library, onToggle: toggle, onReset: reset, total: resultCount, facetCounts: catalog.result?.facetCounts, usingSnapshot: catalog.usingSnapshot, scope: { search: query, ids: view === 'saved' ? saved : view === 'watched' ? watched : view === 'collection' ? [...collectionIds.keys()] : undefined } };
   const navView = view === 'collection' ? 'collections' : view;
   const navItems = [{ id: 'all', label: '发现电影', Icon: Compass }, { id: 'collections', label: '主题片单', Icon: Stack }, { id: 'ai', label: 'AI 找电影', Icon: ChatCircleDots }, { id: 'saved', label: '我的想看', Icon: Heart }, { id: 'watched', label: '我已看过', Icon: CheckCircle }];
 
@@ -231,7 +231,7 @@ export default function App() {
     <div className={`workspace ${['collections', 'ai'].includes(view) ? 'is-collections' : ''}`}>
       {!['collections', 'ai'].includes(view) && <aside className="desktop-filters"><FilterPanel {...filterProps} /></aside>}
       <main className="main-content" id="movie-library">
-        {catalogState.error && <div className="catalog-notice" role="status"><span>暂时无法读取最新片库，先浏览已加载的电影。</span><button onClick={() => setCatalogVersion(value => value + 1)}>重新加载<ArrowCounterClockwise size={13} /></button></div>}
+        {(catalogState.error || catalogState.usingSnapshot) && <div className="catalog-notice" role="status"><span>{catalogState.error ? '暂时无法读取最新片库，先浏览已加载的电影。' : '当前显示已同步的片库，实时评分和评论可能暂时无法使用。'}</span><button onClick={catalog.reload}>重新连接<ArrowCounterClockwise size={13} /></button></div>}
         {['saved', 'watched'].includes(view) && (!auth.user ? <div className="catalog-notice"><span>当前为游客浏览。登录后，建立属于你的电影片单。</span><button onClick={() => auth.promptLogin()}>登录 / 注册<ArrowUpRight size={13} /></button></div> : userLibrary.loading ? <p className="catalog-notice" role="status">正在读取你的云端片单…</p> : userLibrary.error ? <div className="catalog-notice" role="alert"><span>{userLibrary.error}</span><button onClick={userLibrary.retry}>重新读取<ArrowCounterClockwise size={13} /></button></div> : null)}
         {aiVisited && <div hidden={view !== 'ai'}><Suspense fallback={<p className="ai-loading" role="status">正在打开 AI 找电影…</p>}><AiMovieFinder movies={movies} saved={saved} onSave={saveMovie} onOpen={setSelectedMovie} active={view === 'ai'} /></Suspense></div>}
         {view !== 'ai' && <>

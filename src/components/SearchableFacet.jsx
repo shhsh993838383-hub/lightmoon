@@ -3,7 +3,7 @@ import { Check, MagnifyingGlass, X } from '@phosphor-icons/react';
 import { apiUrl, hasApi } from '../lib/urls.js';
 import { facetSuggestions } from '../lib/catalog.js';
 
-export default function SearchableFacet({ facet, filters, mode, catalog, scope, onToggle }) {
+export default function SearchableFacet({ facet, filters, mode, catalog, scope, onToggle, usingSnapshot = false }) {
   const [query, setQuery] = useState('');
   const [options, setOptions] = useState([]);
   const [pending, setPending] = useState(false);
@@ -16,7 +16,7 @@ export default function SearchableFacet({ facet, filters, mode, catalog, scope, 
     const timer = setTimeout(async () => {
       setPending(true); setFailed(false);
       try {
-        if (!hasApi) setOptions(facetSuggestions(catalog, { group: facet.id, filters, mode, query, limit: query ? 12 : 5 }));
+        if (!hasApi || usingSnapshot) setOptions(facetSuggestions(catalog, { group: facet.id, filters, mode, query, limit: query ? 12 : 5 }));
         else {
           const input = JSON.parse(parameters);
           const params = new URLSearchParams({ group: input.group, query: input.query, filters: JSON.stringify(input.filters), mode: input.mode, search: input.search || '' });
@@ -27,11 +27,11 @@ export default function SearchableFacet({ facet, filters, mode, catalog, scope, 
           if (!Array.isArray(result.options)) throw new Error();
           if (!request.signal.aborted) setOptions(result.options.slice(0, query ? 12 : 5));
         }
-      } catch { if (!request.signal.aborted) { setOptions([]); setFailed(true); } }
+      } catch { if (!request.signal.aborted) { setOptions(facetSuggestions(catalog, { group: facet.id, filters, mode, query, limit: query ? 12 : 5 })); setFailed(true); } }
       finally { if (!request.signal.aborted) setPending(false); }
     }, query ? 240 : 0);
     return () => { clearTimeout(timer); request.abort(); };
-  }, [parameters, catalog]);
+  }, [parameters, catalog, usingSnapshot]);
   return <section className="filter-group searchable-facet" aria-label={facet.label}>
     <h3>{facet.label}</h3>
     {selected.length > 0 && <div className="filter-options selected-facet-options">{selected.map(value => <button className="filter-chip" aria-pressed="true" aria-label={`取消${facet.label}：${value}`} onClick={() => onToggle(facet.id, value)} key={value}>{value}<X size={11} /></button>)}</div>}

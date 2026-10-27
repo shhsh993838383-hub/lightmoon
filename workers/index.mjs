@@ -93,6 +93,9 @@ export function createWorkerHandler({ knowledge, accounts = knowledge?.accounts,
     } catch (error) {
       if (error instanceof AssistantError || error instanceof TmdbError || error instanceof DoubanError || error instanceof AccountError) return json(error.status, { error: error.message, code: error.code });
       if (error.message === 'invalid_facet' || error.message === 'invalid_query') return json(400, { error: '筛选或搜索条件不正确。', code: 'invalid_request' });
+      // Log only known error categories, never request bodies, tokens or raw SQL.
+      const categories = String(error.message || '').match(/D1_[A-Z_]+|SQLITE_[A-Z_]+|different request|I\/O|no such table|no such column|exceed|network|timeout|reset|abort|binding|internal error|rows read|rows written|per day|per query|daily|queries|duration|size|length|bound parameters|subrequest|free tier/gi) || [];
+      console.error(JSON.stringify({ event: 'lightmoon_service_failure', categories }));
       return json(503, { error: '电影服务暂时不可用，请稍后重试。', code: 'service_unavailable' });
     }
   };
