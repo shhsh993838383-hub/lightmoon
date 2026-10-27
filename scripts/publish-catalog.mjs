@@ -1,11 +1,15 @@
 import { readFileSync, writeFileSync, renameSync } from 'node:fs';
 import { normalizeDoubanRating } from '../server/movie-ratings.mjs';
 import { mergeCatalog } from '../server/catalog-store.mjs';
+import { meetsRatingPolicy } from '../src/lib/rating-policy.js';
 
 const option = (name, fallback) => { const index = process.argv.indexOf(name); return index < 0 ? fallback : process.argv[index + 1]; };
 const source = option('--input', '.data/enriched-catalog.json');
 const rankings = JSON.parse(readFileSync(option('--douban', '.data/douban-rating-index.json'), 'utf8'));
-const input = JSON.parse(readFileSync(source, 'utf8'));
+const payload = JSON.parse(readFileSync(source, 'utf8'));
+const input = Array.isArray(payload) ? payload : payload.movies;
+const minimum = Number(option('--minimum', '1'));
+if (!Array.isArray(input) || !Number.isInteger(minimum) || minimum < 1) throw new Error('Catalog input or minimum is invalid.');
 const seeds = JSON.parse(readFileSync('src/data/movies.json', 'utf8'));
 const skipped = [];
 const movies = mergeCatalog(seeds, input.map(movie => {
@@ -18,7 +22,7 @@ const movies = mergeCatalog(seeds, input.map(movie => {
     return rating && (!movie.doubanRating || rating.updatedAt > movie.doubanRating.updatedAt) ? { ...movie, doubanRating: rating } : movie;
   } catch { skipped.push(movie.id); return movie; }
 }));
-if (movies.length < input.length || new Set(movies.map(movie => movie.id)).size !== movies.length || new Set(movies.map(movie => movie.tmdbId)).size !== movies.length) throw new Error('Catalog validation failed.');
+if (movies.length < minimum || movies.some(movie => !meetsRatingPolicy(movie)) || new Set(movies.map(movie => movie.id)).size !== movies.length || new Set(movies.map(movie => movie.tmdbId)).size !== movies.length) throw new Error('Catalog validation failed.');
 const target = 'server/data/initial-catalog.json';
 writeFileSync(target + '.tmp', '[\n' + movies.map(movie => '  ' + JSON.stringify(movie)).join(',\n') + '\n]\n');
 renameSync(target + '.tmp', target);

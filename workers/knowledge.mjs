@@ -66,7 +66,11 @@ export function createD1KnowledgeBase(db) {
     const statements = [];
     for (const incoming of movies) {
       const movie = mergeCatalog(seeds, [{ ...existing.get(incoming.tmdbId), ...incoming }]).find(item => item.tmdbId === incoming.tmdbId);
-      if (!movie) continue;
+      if (!movie) {
+        const previous = existing.get(incoming.tmdbId);
+        if (previous) statements.push(prepared('DELETE FROM movie_search WHERE movie_id = ?', [previous.id]), prepared('DELETE FROM movie_tags WHERE movie_id = ?', [previous.id]), prepared('DELETE FROM movies WHERE id = ?', [previous.id]));
+        continue;
+      }
       const document = movieDocument(movie);
       statements.push(prepared(`INSERT INTO movies(id,data,document,tmdb_id,year,minutes,rating,votes,curated) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data,document=excluded.document,tmdb_id=excluded.tmdb_id,year=excluded.year,minutes=excluded.minutes,rating=excluded.rating,votes=excluded.votes,curated=excluded.curated`, [movie.id, JSON.stringify(movie), document, movie.tmdbId, movie.year, movie.minutes, movie.tmdbRating?.average ?? null, movie.tmdbRating?.votes ?? null, movie.tagStatus === 'tmdb-unreviewed' ? 0 : 1]));
       statements.push(prepared('DELETE FROM movie_search WHERE movie_id = ?', [movie.id]), prepared('INSERT INTO movie_search(movie_id,tokens) VALUES (?,?)', [movie.id, tokenize(document).join(' ')]), prepared('DELETE FROM movie_tags WHERE movie_id = ?', [movie.id]));

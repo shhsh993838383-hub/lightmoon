@@ -1,8 +1,9 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { mergeCatalog } from '../server/catalog-store.mjs';
+import { ratingPolicy } from '../src/lib/rating-policy.js';
 const seeds = JSON.parse(readFileSync('src/data/movies.json', 'utf8'));
 const imported = existsSync('server/data/initial-catalog.json') ? JSON.parse(readFileSync('server/data/initial-catalog.json', 'utf8')) : [];
 const movies = mergeCatalog(seeds, imported);
 const catalogUpdatedAt = movies.flatMap(movie => [movie.source?.importedAt, movie.tmdbRating?.updatedAt, movie.doubanRating?.updatedAt, movie.rottenTomatoesRating?.updatedAt]).filter(Boolean).sort().at(-1) || null;
-writeFileSync('public/catalog.json', JSON.stringify({ movies, movieCount: movies.length, tmdbCount: movies.filter(movie => movie.tmdbId).length, catalogUpdatedAt }));
+writeFileSync('public/catalog.json', JSON.stringify({ movies, movieCount: movies.length, tmdbCount: movies.filter(movie => movie.tmdbId).length, catalogUpdatedAt, ratingPolicy }));
 console.log(`Static catalog: ${movies.length} movies`);

@@ -80,3 +80,16 @@ test('Worker serves CORS-protected catalog and grounded AI without returning cre
     assert.equal((await handler(request('/api/catalog?filters=[]'))).status, 400);
   } finally { storage.close(); }
 });
+
+test('D1 admission removes a film and its indexes when any refreshed score falls below the threshold', async () => {
+  const storage = database(), kb = createD1KnowledgeBase(storage.db);
+  try {
+    await kb.upsertImported([facetFixtures[0]]);
+    assert.equal((await kb.stats()).movieCount, 1);
+    await kb.upsertImported([{ ...facetFixtures[0], rottenTomatoesRating: { critics: { score: 59 } } }]);
+    assert.equal((await kb.stats()).movieCount, 0);
+    assert.equal(await kb.getByTmdb(facetFixtures[0].tmdbId), null);
+    assert.deepEqual(await kb.search('演员甲'), []);
+    assert.equal((await kb.queryCatalog({ facets: true })).total, 0);
+  } finally { storage.close(); }
+});

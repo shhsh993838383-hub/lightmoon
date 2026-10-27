@@ -7,6 +7,7 @@ import { resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { createKnowledgeBase, projectRoot } from '../server/knowledge-base.mjs';
 import { createTmdbClient, normalizeTmdbMovie, TmdbError } from '../server/tmdb.mjs';
+import { meetsRatingPolicy } from '../src/lib/rating-policy.js';
 
 const dataDirectory = resolve(projectRoot, '.data');
 mkdirSync(dataDirectory, { recursive: true });
@@ -70,7 +71,7 @@ try {
         return normalizeTmdbMovie(movie, { images: configuration.images });
       } catch (error) { if (['tmdb_not_found', 'tmdb_invalid_record'].includes(error.code)) return null; throw error; }
     }));
-    const movies = normalized.filter(Boolean);
+    const movies = normalized.filter(movie => movie && movie.poster && meetsRatingPolicy(movie));
     if (movies.length) knowledge.upsertImported(movies);
     state.line = pendingLine; state.checked += batch.length; state.imported += movies.length; state.skipped += batch.length - movies.length;
     saveState(); batches++;

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import seedMovies from '../data/movies.json';
 import { apiUrl, assetUrl, hasApi } from './urls.js';
 import { facets, matchesFilters, matchesQuery, sortMovies, toggleFilter } from './catalog.js';
+import { meetsRatingPolicy } from './rating-policy.js';
 
 let staticCatalog;
 async function readStaticCatalog() {
@@ -10,20 +11,21 @@ async function readStaticCatalog() {
     if (!response.ok) throw new Error('catalog_unavailable');
     const data = await response.json();
     if (!Array.isArray(data.movies)) throw new Error('catalog_invalid');
-    return data;
+    const movies = data.movies.filter(meetsRatingPolicy);
+    return { ...data, movies, movieCount: movies.length, tmdbCount: movies.filter(movie => movie.tmdbId).length };
   }).catch(error => { staticCatalog = null; throw error; });
   return staticCatalog;
 }
 
 export default function useCatalog({ query, filters, mode, sort, saved, watched, view, revision }) {
-  const [movies, setMovies] = useState(seedMovies);
+  const [movies, setMovies] = useState(() => seedMovies.filter(meetsRatingPolicy));
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const request = useRef(null);
   const resultRef = useRef(null);
   const input = JSON.stringify({ query, filters, mode, sort, ids: view === 'saved' ? saved : view === 'watched' ? watched : undefined });
-  const remember = useCallback(incoming => setMovies(current => [...new Map([...current, ...incoming].map(movie => [movie.id, movie])).values()]), []);
+  const remember = useCallback(incoming => setMovies(current => [...new Map([...current, ...incoming].map(movie => [movie.id, movie])).values()].filter(meetsRatingPolicy)), []);
 
   const load = useCallback(async (offset = 0) => {
     request.current?.abort();

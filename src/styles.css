@@ -311,6 +311,8 @@ svg { flex-shrink: 0; }
   .global-search-heading { align-items: flex-start; flex-direction: column; }
   .global-search-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 12px; }
 }
+.catalog-standard { margin: -4px 0 22px; color: var(--secondary); font-size: 11px; line-height: 1.8; }
+.catalog-standard span { margin-left: 10px; }
 .library-footer { padding: 40px 0 10px; display: flex; justify-content: center; align-items: center; gap: 9px; color: var(--muted); font-size: 11px; }
 .empty-state { min-height: 345px; padding: 50px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .empty-icon { display: flex; color: var(--muted); padding: 17px; background: var(--surface); border-radius: 16px; margin-bottom: 22px; }

@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import { catalogPath, mergeCatalog, projectRoot, readTmdbCatalog, tmdbCatalogPath } from './catalog-store.mjs';
 import { catalogSort, catalogWhere, normalizeFilters, facetSuggestionQuery } from './catalog-query.mjs';
 import { facets, toggleFilter, facetValues } from '../src/lib/catalog.js';
+import { meetsRatingPolicy, ratingPolicy } from '../src/lib/rating-policy.js';
 
 export { projectRoot, catalogPath };
 export const knowledgeDatabasePath = resolve(projectRoot, '.data/knowledge.sqlite');
@@ -45,7 +46,15 @@ export function createKnowledgeBase({ dbPath = knowledgeDatabasePath, sourcePath
   const deleteTags = db.prepare('DELETE FROM movie_tags WHERE movie_id = ?');
   let signature, seeds = [], closed = false;
   const transaction = callback => { db.exec('BEGIN IMMEDIATE'); try { callback(); db.exec('COMMIT'); } catch (error) { db.exec('ROLLBACK'); throw error; } };
+  function remove(movie) {
+    const row = db.prepare('SELECT rowid FROM movies WHERE id = ?').get(movie.id);
+    if (!row) return;
+    deleteSearch.run(row.rowid); deleteTags.run(movie.id);
+    db.prepare('DELETE FROM movies WHERE id = ?').run(movie.id);
+  }
   function upsert(movie) {
+    if (!movie) return;
+    if (!meetsRatingPolicy(movie)) { remove(movie); return; }
     const previous = db.prepare('SELECT rowid FROM movies WHERE id = ?').get(movie.id);
     if (previous) deleteSearch.run(previous.rowid);
     const document = movieDocument(movie);
@@ -62,6 +71,7 @@ export function createKnowledgeBase({ dbPath = knowledgeDatabasePath, sourcePath
         const existing = row ? JSON.parse(row.data) : {};
         const merged = mergeCatalog(seeds, [{ ...existing, ...movie }]).find(item => item.tmdbId === movie.tmdbId);
         if (merged) upsert(merged);
+        else if (row) remove(existing);
       }
       putMetadata.run('catalogUpdatedAt', new Date().toISOString());
       putMetadata.run('indexedAt', new Date().toISOString());
@@ -73,6 +83,13 @@ export function createKnowledgeBase({ dbPath = knowledgeDatabasePath, sourcePath
     if (signature === nextSignature) return;
     const source = readFileSync(sourcePath, 'utf8');
     seeds = JSON.parse(source);
+    if (getMetadata('ratingPolicyVersion') !== String(ratingPolicy.version)) transaction(() => {
+      for (const row of db.prepare('SELECT data FROM movies').all()) {
+        const movie = JSON.parse(row.data);
+        if (!meetsRatingPolicy(movie)) remove(movie);
+      }
+      putMetadata.run('ratingPolicyVersion', String(ratingPolicy.version));
+    });
     const seedHash = createHash('sha256').update(source).digest('hex');
     if (getMetadata('catalogSchema') !== '4') {
       const oldMovies = db.prepare('SELECT data FROM movies ORDER BY rowid').all().map(row => JSON.parse(row.data));

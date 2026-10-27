@@ -117,6 +117,9 @@ export function createCloudKnowledgeBase({ url = process.env.DATABASE_URL, query
     const rows = await execute('SELECT data FROM movies WHERE tmdb_id = ANY(?::bigint[])', [movies.map(movie => movie.tmdbId)]);
     const existing = new Map(rows.map(row => [row.data.tmdbId, row.data]));
     const merged = movies.map(movie => mergeCatalog(seeds, [{ ...existing.get(movie.tmdbId), ...movie }]).find(item => item.tmdbId === movie.tmdbId)).filter(Boolean);
+    const accepted = new Set(merged.map(movie => movie.tmdbId));
+    const rejected = movies.filter(movie => !accepted.has(movie.tmdbId)).map(movie => movie.tmdbId);
+    if (rejected.length) { await execute('DELETE FROM movies WHERE tmdb_id = ANY(?::bigint[])', [rejected]); cachedStats = null; }
     await writeMovies(merged);
     await setMetadata('catalogUpdatedAt', new Date().toISOString());
     await setMetadata('indexedAt', new Date().toISOString());

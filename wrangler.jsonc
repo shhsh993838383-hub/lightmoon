@@ -14,7 +14,7 @@
   "d1_databases": [{
     "binding": "DB",
     "database_name": "lightmoon-movies",
-    "database_id": "00000000-0000-0000-0000-000000000000",
+    "database_id": "2c1d1a8b-2cf4-484a-a7ff-a65a1ea1d7b6",
     "migrations_dir": "workers/migrations"
   }],
   "observability": { "enabled": false }

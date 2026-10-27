@@ -1,17 +1,20 @@
-import { readFileSync, mkdirSync } from 'node:fs';
-import { syncTmdbCatalog, TmdbError } from '../server/tmdb.mjs';
+import { readFileSync, mkdirSync, existsSync } from 'node:fs';
+import { TmdbError } from '../server/tmdb.mjs';
+import { expandTmdbCatalog } from '../server/expand-tmdb.mjs';
 import { writeTmdbCatalog } from '../server/catalog-store.mjs';
 
 const index = process.argv.indexOf('--limit');
-const limit = index < 0 ? 2000 : Number(process.argv[index + 1]);
-const seeds = JSON.parse(readFileSync('src/data/movies.json', 'utf8'));
-const existing = JSON.parse(readFileSync('server/data/initial-catalog.json', 'utf8'));
+const target = index < 0 ? 5000 : Number(process.argv[index + 1]);
+if (existsSync('.env')) process.loadEnvFile('.env');
+const source = JSON.parse(readFileSync('server/data/initial-catalog.json', 'utf8'));
+const checkpoint = existsSync('.data/expanded-catalog.json') ? JSON.parse(readFileSync('.data/expanded-catalog.json', 'utf8')).movies : [];
+const existing = [...new Map([...source, ...checkpoint].map(movie => [movie.tmdbId, movie])).values()];
 mkdirSync('.data', { recursive: true });
 try {
-  const result = await syncTmdbCatalog({ seeds, existing, limit, skipExisting: true,
+  const result = await expandTmdbCatalog({ existing, target,
     onBatch: movies => writeTmdbCatalog({ version: 1, updatedAt: new Date().toISOString(), movies }, '.data/expanded-catalog.json'),
     onProgress: progress => {
-      if (progress.stage === 'importing' && (progress.current % 60 === 0 || progress.current === progress.total)) console.log(JSON.stringify(progress));
+      if (progress.processed % 100 < 4 || progress.movieCount >= target) console.log(JSON.stringify(progress));
     },
   });
   writeTmdbCatalog(result, '.data/expanded-catalog.json');

@@ -3,15 +3,15 @@ on:
   workflow_dispatch:
     inputs:
       limit:
-        description: Candidate count (1-2000)
-        default: '2000'
+        description: Qualified catalog target (1-10000)
+        default: '5000'
         required: true
 permissions:
   contents: read
 jobs:
   import:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
