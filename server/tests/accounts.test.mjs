@@ -18,7 +18,7 @@ const movieId = facetFixtures[0].id;
 async function setup(t, options) {
   const sql = new DatabaseSync(':memory:');
   sql.exec('PRAGMA foreign_keys=ON;');
-  for (const file of ['0001_movies.sql', '0002_accounts_community.sql']) sql.exec(readFileSync('workers/migrations/' + file, 'utf8'));
+  for (const file of ['0001_movies.sql', '0002_accounts_community.sql', '0003_catalog_tag_index.sql']) sql.exec(readFileSync('workers/migrations/' + file, 'utf8'));
   t.after(() => sql.close());
   const db = sqliteD1Adapter(sql), knowledge = createD1KnowledgeBase(db), store = createAccountStore(db, options);
   await knowledge.upsertImported(facetFixtures);

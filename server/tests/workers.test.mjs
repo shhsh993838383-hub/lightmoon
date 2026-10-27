@@ -11,6 +11,7 @@ function database() {
   const sql = new DatabaseSync(':memory:');
   sql.exec(readFileSync('workers/migrations/0001_movies.sql', 'utf8'));
   sql.exec(readFileSync('workers/migrations/0002_accounts_community.sql', 'utf8'));
+  sql.exec(readFileSync('workers/migrations/0003_catalog_tag_index.sql', 'utf8'));
   const db = { prepare(statement) {
     const build = params => ({
       bind(...values) { assert.ok(values.length <= 100, 'D1 statement exceeds 100 bindings'); return build(values); },
