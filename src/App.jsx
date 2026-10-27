@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowCounterClockwise, ArrowRight, ArrowUpRight, CaretDown, Check, CheckCircle, ChatCircleDots, Compass, FilmSlate, Heart, Lightning, MagnifyingGlass, Moon, Shuffle, SlidersHorizontal, Smiley, Sparkle, Stack, Star, Sun, X } from '@phosphor-icons/react';
 import seedMovies from './data/movies.json';
-import AiMovieFinder from './components/AiMovieFinder.jsx';
 import DoubanRankings from './components/DoubanRankings.jsx';
 import GlobalSearch from './components/GlobalSearch.jsx';
 import FilmRatings from './components/FilmRatings.jsx';
@@ -9,6 +8,8 @@ import SearchableFacet from './components/SearchableFacet.jsx';
 import useCatalog from './lib/useCatalog.js';
 import { apiUrl, assetUrl, hasApi } from './lib/urls.js';
 import { collections, emptyFilters, facets, facetValues, matchesFilters, matchesQuery, sortMovies, toggleFilter } from './lib/catalog.js';
+
+const AiMovieFinder = lazy(() => import('./components/AiMovieFinder.jsx'));
 
 function readMovieList(key) {
   try {
@@ -34,6 +35,31 @@ function Poster({ movie, eager = false, className = '' }) {
   </span>;
 }
 
+function FeaturedCollection({ movies, onOpen, onCollection }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const films = ['walter-mitty', 'truman', 'soul'].map(id => movies.find(movie => movie.id === id)).filter(Boolean);
+  return <section className="featured-collection" aria-label="去远方，也找到自己主题片单">
+    <div className="feature-stage">
+      <div className="feature-copy">
+        <span className="feature-category">给想出发的你</span>
+        <h2>去远方，<br />也找到自己。</h2>
+        <p>有些旅程，刚好从一部电影开始。</p>
+        <button className="feature-link" onClick={onCollection}>打开这份片单<ArrowUpRight size={19} /></button>
+      </div>
+      <div className={`feature-artwork ${imageFailed ? 'has-fallback' : ''}`}>
+        {imageFailed && films[0] ? <Poster movie={films[0]} eager /> : <picture><source type="image/avif" srcSet={`${assetUrl('/stills/walter-mitty-small.avif')} 780w, ${assetUrl('/stills/walter-mitty.avif')} 1280w`} sizes="(max-width: 767px) 100vw, (max-width: 1279px) 46vw, 620px" /><img src={assetUrl('/stills/walter-mitty.webp')} srcSet={`${assetUrl('/stills/walter-mitty-small.webp')} 780w, ${assetUrl('/stills/walter-mitty.webp')} 1280w`} sizes="(max-width: 767px) 100vw, (max-width: 1279px) 46vw, 620px" width="1280" height="720" alt="《白日梦想家》中，沃尔特坐在云雾环绕的群山之间" fetchPriority="high" decoding="async" onError={() => setImageFailed(true)} /></picture>}
+      </div>
+    </div>
+    <div className="feature-films" aria-label="片单中的电影">
+      {films.map(movie => <button key={movie.id} className="feature-film" onClick={() => onOpen(movie)} aria-label={`查看${movie.title} ${movie.year} / ${movie.genre[0]}`}>
+        <Poster movie={movie} eager />
+        <span className="feature-film-copy"><strong>{movie.title}</strong><span>{movie.year}<span className="feature-film-genre"> / {movie.genre[0]}</span></span></span>
+        <ArrowUpRight size={15} />
+      </button>)}
+    </div>
+  </section>;
+}
+
 function MovieCard({ movie, saved, watched, onSave, onWatched, onOpen, eager }) {
   return <article className="movie-card">
     <button className="poster-button" onClick={() => onOpen(movie)} aria-label={`查看${movie.title}`}><Poster movie={movie} eager={eager} /></button>
@@ -41,7 +67,7 @@ function MovieCard({ movie, saved, watched, onSave, onWatched, onOpen, eager }) 
     <div className="movie-meta"><span>{movie.year || '年份待补充'}</span><span>{movie.genre.slice(0, 2).join(' / ')}</span></div>
     <div className="movie-caption"><span className="movie-moods">{movie.mood.length ? movie.mood.slice(0, 2).join(' / ') : movie.country}</span></div>
     <FilmRatings movie={movie} />
-    <button className={`watched-toggle ${watched ? 'is-watched' : ''}`} aria-pressed={watched} aria-label={`${watched ? '取消已看' : '标记已看'}${movie.title}`} onClick={() => onWatched(movie.id)}><CheckCircle size={15} weight={watched ? 'fill' : 'regular'} />{watched ? '已看过' : '标记已看'}</button>
+    <button className={`watched-toggle ${watched ? 'is-watched' : ''}`} aria-pressed={watched} aria-label={`${watched ? '已看过，取消标记' : '标记已看'} ${movie.title}`} onClick={() => onWatched(movie.id)}><CheckCircle size={15} weight={watched ? 'fill' : 'regular'} />{watched ? '已看过' : '标记已看'}</button>
   </article>;
 }
 
@@ -55,7 +81,7 @@ function FilterGroup({ facet, filters, mode, catalog, onToggle, facetCounts }) {
       {options.map(value => {
         const selected = filters[facet.id].includes(value);
         const count = selected ? null : countAfter(value);
-        return <button key={value} className={`filter-chip ${count === 0 ? 'is-unavailable' : ''}`} data-filter={facet.id} data-value={value} aria-pressed={selected} aria-label={selected ? `取消${facet.label}：${value}` : `${facet.label}：${value}，点选后 ${count} 部电影`} onClick={() => onToggle(facet.id, value)}>{value}{selected ? <Check size={11} weight="bold" /> : <span className="filter-count">{count}</span>}</button>;
+        return <button key={value} className={`filter-chip ${count === 0 ? 'is-unavailable' : ''}`} data-filter={facet.id} data-value={value} aria-pressed={selected} aria-label={selected ? `取消${facet.label}：${value}` : `${facet.label}：${value} ${count} 部电影，点选筛选`} onClick={() => onToggle(facet.id, value)}>{value}{selected ? <Check size={11} weight="bold" /> : <span className="filter-count" aria-hidden="true">{count}</span>}</button>;
       })}
     </div>
     {facet.id === 'genre' && <button className="more-genres" onClick={() => setExpanded(value => !value)} aria-expanded={expanded}>{expanded ? '收起类型' : '更多类型'}<CaretDown size={11} /></button>}
@@ -136,6 +162,7 @@ const quickMoods = [
 export default function App() {
   const [catalogVersion, setCatalogVersion] = useState(0);
   const [view, setView] = useState('all');
+  const [aiVisited, setAiVisited] = useState(false);
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState(emptyFilters);
   const [mode, setMode] = useState('any');
@@ -160,7 +187,7 @@ export default function App() {
   const active = facets.flatMap(facet => filters[facet.id].map(value => ({ group: facet.id, groupLabel: facet.label, value })));
   const isFiltered = active.length > 0 || query.trim().length > 0;
   const showFeature = view === 'all' && !isFiltered;
-  const navigate = next => { setView(next); setQuery(''); setFilters(emptyFilters()); setMobileFilters(false); };
+  const navigate = next => { if (next === 'ai') setAiVisited(true); setView(next); setQuery(''); setFilters(emptyFilters()); setMobileFilters(false); };
   const toggle = (group, value) => setFilters(current => toggleFilter(current, group, value));
   const reset = () => { setFilters(emptyFilters()); setQuery(''); };
 
@@ -238,11 +265,11 @@ export default function App() {
       {!['collections', 'ai'].includes(view) && <aside className="desktop-filters"><FilterPanel {...filterProps} /></aside>}
       <main className="main-content" id="movie-library">
         {catalogState.error && <div className="catalog-notice" role="status"><span>暂时无法读取最新片库，先浏览已加载的电影。</span><button onClick={() => setCatalogVersion(value => value + 1)}>重新加载<ArrowCounterClockwise size={13} /></button></div>}
-        <div hidden={view !== 'ai'}><AiMovieFinder movies={movies} saved={saved} onSave={saveMovie} onOpen={setSelectedMovie} active={view === 'ai'} /></div>
+        {aiVisited && <div hidden={view !== 'ai'}><Suspense fallback={<p className="ai-loading" role="status">正在打开 AI 找电影…</p>}><AiMovieFinder movies={movies} saved={saved} onSave={saveMovie} onOpen={setSelectedMovie} active={view === 'ai'} /></Suspense></div>}
         {view !== 'ai' && <>
         <div className="page-intro"><div><h1>{view === 'watched' ? '看过的故事，都留在这里。' : view === 'saved' ? '好电影，留着慢慢看。' : view === 'collections' ? '跟着一个主题，走进电影。' : '找到此刻想看的电影。'}</h1><p>{view === 'watched' ? '记录那些陪你度过时光的电影，也可以随时重温。' : view === 'saved' ? '把心动的故事，留给下一个有空的晚上。' : view === 'collections' ? '把相似的感受，放在同一份片单里。' : '从类型、心情和故事出发，慢慢发现你的下一部。'}</p></div>{view !== 'collections' && <button className="random-button" aria-label="随机一部" onClick={() => { if (found.length) setSelectedMovie(found[Math.floor(Math.random() * found.length)]); }} disabled={!found.length}><Shuffle size={17} /><span>随机一部</span></button>}</div>
 
-        {showFeature && <section className="featured-collection" aria-label="去远方，也找到自己主题片单"><div className="feature-copy"><span className="feature-category">给想出发的你</span><h2>去远方，<br />也找到自己。</h2><p>有些旅程，刚好从一部电影开始。</p><button className="feature-link" onClick={() => openCollection(collections[0])}>打开这份片单<ArrowUpRight size={17} /></button></div><div className="feature-posters">{['truman', 'walter-mitty', 'soul'].map((id, index) => { const movie = movies.find(item => item.id === id); return <button key={id} className={`feature-poster feature-poster-${index}`} onClick={() => setSelectedMovie(movie)} aria-label={`查看${movie.title}`}><Poster movie={movie} eager /></button>; })}</div></section>}
+        {showFeature && <FeaturedCollection movies={movies} onOpen={setSelectedMovie} onCollection={() => openCollection(collections[0])} />}
 
         {view === 'collections' ? <><section className="collection-grid" aria-label="主题片单">{collections.map(collection => <button key={collection.id} className={`collection-tile collection-${collection.theme}`} onClick={() => openCollection(collection)}><span className="collection-cover">{collection.movies.map(id => { const movie = movies.find(item => item.id === id); return <Poster key={id} movie={movie} />; })}</span><span className="collection-title">{collection.title}<ArrowUpRight size={20} /></span><span className="collection-description">{collection.description}</span><span className="collection-total">打开片单</span></button>)}</section>{hasApi && <DoubanRankings />}</> : <>
           {view === 'all' && <section className="quick-moods" aria-label="按心情快速选择"><span className="quick-label">今天想要</span><div>{quickMoods.map(({ label, value, Icon }) => <button key={value} className="mood-button" aria-pressed={filters.mood.includes(value)} onClick={() => toggle('mood', value)}><Icon size={16} />{label}</button>)}</div></section>}

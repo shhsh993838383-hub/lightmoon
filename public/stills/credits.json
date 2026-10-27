@@ -1,0 +1,17 @@
+{
+  "images": [
+    {
+      "file": "walter-mitty.avif",
+      "small": "walter-mitty-small.avif",
+      "film": "The Secret Life of Walter Mitty",
+      "tmdbId": 116745,
+      "source": "https://www.themoviedb.org/movie/116745/images/backdrops",
+      "image": "https://image.tmdb.org/t/p/original/pzMrxeP9XkKOtQVUBPTq5yk4ck5.jpg",
+      "use": "Film collection artwork; TMDB acknowledgement is in the About dialog.",
+      "fallback": [
+        "walter-mitty.webp",
+        "walter-mitty-small.webp"
+      ]
+    }
+  ]
+}

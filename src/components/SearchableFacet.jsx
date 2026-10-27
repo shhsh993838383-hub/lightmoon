@@ -36,7 +36,7 @@ export default function SearchableFacet({ facet, filters, mode, catalog, scope, 
     <h3>{facet.label}</h3>
     {selected.length > 0 && <div className="filter-options selected-facet-options">{selected.map(value => <button className="filter-chip" aria-pressed="true" aria-label={`取消${facet.label}：${value}`} onClick={() => onToggle(facet.id, value)} key={value}>{value}<X size={11} /></button>)}</div>}
     <label className="facet-search"><MagnifyingGlass size={14} /><input type="search" aria-label={facet.placeholder} placeholder={facet.placeholder} value={query} onChange={event => setQuery(event.target.value)} /></label>
-    <div className="facet-suggestions" aria-busy={pending}>{visibleOptions.map(option => <button key={option.value} aria-label={`${facet.label}：${option.value}，点选后 ${option.count} 部电影`} aria-pressed={false} onClick={() => { onToggle(facet.id, option.value); setQuery(''); }} disabled={selected.length >= 8}><span>{option.value}</span><span className="filter-count">{option.count}</span><Check size={11} /></button>)}</div>
+    <div className="facet-suggestions" aria-busy={pending}>{visibleOptions.map(option => <button key={option.value} aria-label={`${facet.label}：${option.value} ${option.count} 部电影，点选筛选`} aria-pressed={false} onClick={() => { onToggle(facet.id, option.value); setQuery(''); }} disabled={selected.length >= 8}><span>{option.value}</span><span className="filter-count" aria-hidden="true">{option.count}</span><Check size={11} /></button>)}</div>
     {!visibleOptions.length && <p className="facet-search-status" role="status">{pending ? '正在查找…' : failed ? '暂时无法读取筛选项' : query ? '当前条件下没有匹配项' : selected.length ? '可继续输入名称查找' : '当前条件下暂无可选项'}</p>}
   </section>;
 }

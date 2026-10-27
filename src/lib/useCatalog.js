@@ -5,7 +5,8 @@ import { facets, matchesFilters, matchesQuery, sortMovies, toggleFilter } from '
 
 let staticCatalog;
 async function readStaticCatalog() {
-  if (!staticCatalog) staticCatalog = fetch(assetUrl('/catalog.json')).then(async response => {
+  // Let the visible film artwork load ahead of the full offline catalog.
+  if (!staticCatalog) staticCatalog = fetch(assetUrl('/catalog.json'), { priority: 'low' }).then(async response => {
     if (!response.ok) throw new Error('catalog_unavailable');
     const data = await response.json();
     if (!Array.isArray(data.movies)) throw new Error('catalog_invalid');
