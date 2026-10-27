@@ -42,8 +42,8 @@ export default function AuthDialog({ auth, onNotice }) {
       <form key={auth.mode} className="auth-form" onSubmit={submit}>
         <label htmlFor="auth-email">邮箱<input id="auth-email" name="email" type="email" autoComplete="email" placeholder="你的邮箱地址" maxLength={254} required disabled={busy} /></label>
         {registering && <label htmlFor="auth-name">昵称 <span>选填，评论中公开显示</span><input id="auth-name" name="displayName" autoComplete="nickname" placeholder="怎么称呼你" maxLength={24} disabled={busy} /></label>}
-        <label htmlFor="auth-password">{registering ? '设置密码' : '密码'}<input id="auth-password" name="password" type="password" autoComplete={registering ? 'new-password' : 'current-password'} placeholder={registering ? '10–128 个字符' : '输入你的密码'} minLength={registering ? 10 : 1} maxLength={128} required disabled={busy} /></label>
-        {registering && <label htmlFor="auth-confirm">确认密码<input id="auth-confirm" name="confirm" type="password" autoComplete="new-password" placeholder="再次输入密码" minLength={10} maxLength={128} required disabled={busy} /></label>}
+        <label htmlFor="auth-password">{registering ? '设置密码' : '密码'}<input id="auth-password" name="password" type="password" autoComplete={registering ? 'new-password' : 'current-password'} placeholder={registering ? '6–128 个字符' : '输入你的密码'} minLength={registering ? 6 : 1} maxLength={128} required disabled={busy} /></label>
+        {registering && <label htmlFor="auth-confirm">确认密码<input id="auth-confirm" name="confirm" type="password" autoComplete="new-password" placeholder="再次输入密码" minLength={6} maxLength={128} required disabled={busy} /></label>}
         {error && <p className="form-error" role="alert">{error}</p>}
         {registering && <p className="auth-smallprint">请使用自己的邮箱。当前无需邮件验证，暂不支持找回密码，请妥善保存密码。</p>}
         <button className="primary-button auth-submit" disabled={busy || auth.checking}>{busy ? '正在处理…' : registering ? '注册并登录' : '登录光幕'}<ArrowRight size={17} /></button>

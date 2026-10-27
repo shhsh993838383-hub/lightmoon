@@ -56,9 +56,11 @@ test('email registration normalizes identity and stores salted password hashes a
 test('registration rejects malformed emails, short passwords, oversized input and invalid nicknames', async t => {
   const { store, request } = await setup(t);
   for (const email of ['hello', 'a@@example.com', 'a..b@example.com', '.a@example.com', 'a.@example.com', 'a@-example.com']) await assert.rejects(store.register({ email, password }), error => error instanceof AccountError && error.status === 400);
-  for (const value of ['123456789', 'a'.repeat(129), null]) await assert.rejects(store.register({ email: 'a@example.invalid', password: value }), /10 至 128/);
+  for (const value of ['12345', 'a'.repeat(129), null]) await assert.rejects(store.register({ email: 'a@example.invalid', password: value }), /6 至 128/);
   await assert.rejects(store.register({ email: 'a@example.invalid', password, displayName: '<bad>' }), /昵称/);
   assert.equal((await request('/api/auth/register', { method: 'POST', body: [] })).status, 400);
+  const shortPassword = await store.register({ email: 'six@example.invalid', password: 'aB3dE6' });
+  assert.equal((await store.login({ email: 'six@example.invalid', password: 'aB3dE6' })).user.id, shortPassword.user.id);
 });
 
 test('guests may read community data but cannot rate, comment, save, mark watched or impersonate a user', async t => {

@@ -18,7 +18,7 @@ export function normalizeEmail(value) {
   return email;
 }
 function validatePassword(value, registering = false) {
-  if (typeof value !== 'string' || value.length > 128 || value.length < (registering ? 10 : 1)) throw new AccountError(registering ? '密码请设置为 10 至 128 个字符。' : '请填写邮箱和密码。');
+  if (typeof value !== 'string' || value.length > 128 || value.length < (registering ? 6 : 1)) throw new AccountError(registering ? '密码请设置为 6 至 128 个字符。' : '请填写邮箱和密码。');
 }
 async function passwordHash(password, salt, count = iterations) {
   const key = await crypto.subtle.importKey('raw', encode.encode(password), 'PBKDF2', false, ['deriveBits']);
