@@ -32,6 +32,8 @@ test('D1 persists searchable films and combined filters within binding limits', 
     await kb.upsertImported(facetFixtures);
     assert.equal((await kb.stats()).movieCount, 3);
     assert.ok((await kb.search('演员甲')).some(row => row.id === 'tmdb-999001'));
+    const ids = [...facetFixtures].reverse().map(movie => movie.id);
+    assert.deepEqual((await kb.queryCatalog({ ids, sort: 'collection', limit: 2, offset: 1 })).movies.map(movie => movie.id), ids.slice(1));
     for (const mode of ['any', 'all']) for (const filter of metadataFilters) {
       const filters = { ...emptyFilters(), ...filter };
       const expected = facetFixtures.filter(movie => matchesFilters(movie, filters, mode)).map(movie => movie.id).sort();

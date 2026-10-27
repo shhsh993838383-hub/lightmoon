@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { catalogPath, mergeCatalog, projectRoot, readTmdbCatalog, tmdbCatalogPath } from './catalog-store.mjs';
-import { catalogSort, catalogWhere, normalizeFilters, facetSuggestionQuery } from './catalog-query.mjs';
+import { catalogOrder, catalogWhere, normalizeFilters, facetSuggestionQuery } from './catalog-query.mjs';
 import { facets, toggleFilter, facetValues } from '../src/lib/catalog.js';
 import { meetsRatingPolicy, ratingPolicy } from '../src/lib/rating-policy.js';
 
@@ -139,7 +139,8 @@ export function createKnowledgeBase({ dbPath = knowledgeDatabasePath, sourcePath
     const limit = Math.max(1, Math.min(200, Number(options.limit) || 40));
     const offset = Math.max(0, Math.floor(Number(options.offset) || 0));
     const total = db.prepare('SELECT COUNT(*) AS count FROM movies m' + where.sql).get(...where.params).count;
-    const movies = parseRows(db.prepare('SELECT m.data FROM movies m' + where.sql + ' ORDER BY ' + catalogSort(options.sort) + ' LIMIT ? OFFSET ?').all(...where.params, limit, offset));
+    const order = catalogOrder(options);
+    const movies = parseRows(db.prepare('SELECT m.data FROM movies m' + where.sql + ' ORDER BY ' + order.sql + ' LIMIT ? OFFSET ?').all(...where.params, ...order.params, limit, offset));
     let facetCounts;
     if (options.facets) {
       const filters = normalizeFilters(options.filters);

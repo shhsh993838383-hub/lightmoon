@@ -7,6 +7,7 @@ const save = (path, value) => { writeFileSync(path + '.tmp', JSON.stringify(valu
 const key = text => String(text || '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
 const today = new Date().toISOString().slice(0, 10);
 const client = createTmdbClient();
+const seeds = read('src/data/movies.json');
 mkdirSync('.data', { recursive: true });
 
 const rawTop = read('.data/douban-top250-source.json', null);
@@ -108,7 +109,8 @@ for (const definition of definitions) {
   console.log(JSON.stringify({ stage: 'series', title: definition.title, movies: movies.length }));
 }
 
-const compact = collections.map(collection => ({ ...collection, movies: collection.movies.map(movie => ({ id: movie.id, tmdbId: movie.tmdbId, title: movie.title, year: movie.year, releaseDate: movie.releaseDate, poster: movie.poster, ...(collection.order === 'rank' ? { rank: movie.doubanTop250Rank, doubanId: movie.doubanId } : {}) })) }));
+const stableId = movie => seeds.find(seed => seed.tmdbId === movie.tmdbId || movie.curatedId === seed.id || seed.year === movie.year && [movie.title, movie.originalTitle, ...(movie.aliases || [])].map(key).includes(key(seed.title)))?.id || movie.id;
+const compact = collections.map(collection => ({ ...collection, movies: collection.movies.map(movie => ({ id: stableId(movie), tmdbId: movie.tmdbId, title: movie.title, year: movie.year, releaseDate: movie.releaseDate, poster: movie.poster, ...(collection.order === 'rank' ? { rank: movie.doubanTop250Rank, doubanId: movie.doubanId } : {}) })) }));
 save('src/data/series-collections.json', compact);
 save('server/data/collection-movies.json', [...records.values()]);
 console.log(JSON.stringify({ collections: compact.length, movies: records.size, top250: topMovies.length, unresolved: unresolved.map(item => ({ title: item.title, year: item.year })) }));

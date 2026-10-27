@@ -26,6 +26,8 @@ test('cloud PostgreSQL supports catalog filters, pagination, retrieval, and pers
     const first = await cloud.queryCatalog({ limit: 5, facets: true });
     const next = await cloud.queryCatalog({ limit: 5, offset: 5 });
     assert.equal(new Set([...first.movies, ...next.movies].map(movie => movie.id)).size, 10);
+    const ids = ['totoro', 'flipped', 'inception'];
+    assert.deepEqual((await cloud.queryCatalog({ ids, sort: 'collection', limit: 2, offset: 1 })).movies.map(movie => movie.id), ids.slice(1));
     for (const facet of facets) for (const value of facet.options) assert.equal(first.facetCounts[facet.id][value], seeds.filter(movie => matchesFilters(movie, toggleFilter(emptyFilters(), facet.id, value))).length);
     assert.ok((await cloud.search('白日梦想家')).some(hit => hit.id === 'walter-mitty'));
     const answer = await answerQuestion({ knowledge: cloud, messages: [{ role: 'user', content: '爱情片，两个小时以内' }], mode: 'local' });

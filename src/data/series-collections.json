@@ -2518,7 +2518,7 @@
     "description": "从钢铁侠出发，按上映时间走进漫威电影宇宙。收录已上映的剧情长片与特别篇。",
     "theme": "marvel",
     "order": "release",
-    "updatedAt": "2026-10-27T12:47:45.249Z",
+    "updatedAt": "2026-10-27T12:52:19.280Z",
     "source": {
       "provider": "tmdb",
       "keywords": [
@@ -2863,7 +2863,7 @@
     "description": "八部正传，从魔法石到最后的决战。",
     "theme": "magic",
     "order": "release",
-    "updatedAt": "2026-10-27T12:47:45.634Z",
+    "updatedAt": "2026-10-27T12:52:19.623Z",
     "source": {
       "provider": "tmdb",
       "collectionIds": [
@@ -2944,7 +2944,7 @@
     "description": "纽特的魔法旅程，哈利波特故事之前的魔法世界。",
     "theme": "magic",
     "order": "release",
-    "updatedAt": "2026-10-27T12:47:46.024Z",
+    "updatedAt": "2026-10-27T12:52:19.960Z",
     "source": {
       "provider": "tmdb",
       "collectionIds": [
@@ -2985,7 +2985,7 @@
     "description": "两组三部曲，按上映顺序重返中土。",
     "theme": "earth",
     "order": "release",
-    "updatedAt": "2026-10-27T12:47:46.726Z",
+    "updatedAt": "2026-10-27T12:52:20.599Z",
     "source": {
       "provider": "tmdb",
       "collectionIds": [
@@ -3051,7 +3051,7 @@
     "description": "收录 DCEU、DCU，以及蝙蝠侠、超人、小丑等主要真人电影系列。不同宇宙分别保留。",
     "theme": "dc",
     "order": "release",
-    "updatedAt": "2026-10-27T12:47:48.627Z",
+    "updatedAt": "2026-10-27T12:52:22.411Z",
     "source": {
       "provider": "tmdb",
       "collectionIds": [
@@ -3383,7 +3383,7 @@
     "description": "从街头赛车到全球任务，含正传与特别行动。",
     "theme": "racing",
     "order": "release",
-    "updatedAt": "2026-10-27T12:47:49.187Z",
+    "updatedAt": "2026-10-27T12:52:22.786Z",
     "source": {
       "provider": "tmdb",
       "collectionIds": [
@@ -3488,7 +3488,7 @@
     "description": "天行者传奇九部曲，加入侠盗一号与游侠索罗。",
     "theme": "space",
     "order": "release",
-    "updatedAt": "2026-10-27T12:47:49.630Z",
+    "updatedAt": "2026-10-27T12:52:23.186Z",
     "source": {
       "provider": "tmdb",
       "collectionIds": [
@@ -3597,7 +3597,7 @@
     "description": "跟着伊森·亨特，按上映顺序完成每一次不可能的任务。",
     "theme": "racing",
     "order": "release",
-    "updatedAt": "2026-10-27T12:47:50.067Z",
+    "updatedAt": "2026-10-27T12:52:23.697Z",
     "source": {
       "provider": "tmdb",
       "collectionIds": [
@@ -3678,7 +3678,7 @@
     "description": "杰克船长的五次冒险，从黑珍珠号开始。",
     "theme": "earth",
     "order": "release",
-    "updatedAt": "2026-10-27T12:47:50.615Z",
+    "updatedAt": "2026-10-27T12:52:24.035Z",
     "source": {
       "provider": "tmdb",
       "collectionIds": [
@@ -3735,7 +3735,7 @@
     "description": "从红蓝药丸到矩阵重启，重访四部真人电影。",
     "theme": "dc",
     "order": "release",
-    "updatedAt": "2026-10-27T12:47:51.048Z",
+    "updatedAt": "2026-10-27T12:52:24.378Z",
     "source": {
       "provider": "tmdb",
       "collectionIds": [
@@ -3784,7 +3784,7 @@
     "description": "公园、世界与重生，回到恐龙时代。",
     "theme": "earth",
     "order": "release",
-    "updatedAt": "2026-10-27T12:47:51.471Z",
+    "updatedAt": "2026-10-27T12:52:24.741Z",
     "source": {
       "provider": "tmdb",
       "collectionIds": [

@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { catalogPath, mergeCatalog, projectRoot } from './catalog-store.mjs';
-import { catalogSort, catalogWhere, normalizeFilters, facetSuggestionQuery } from './catalog-query.mjs';
+import { catalogOrder, catalogWhere, normalizeFilters, facetSuggestionQuery } from './catalog-query.mjs';
 import { movieDocument, tokenize } from './knowledge-document.mjs';
 import { facets, toggleFilter } from '../src/lib/catalog.js';
 
@@ -86,7 +86,8 @@ export function createCloudKnowledgeBase({ url = process.env.DATABASE_URL, query
     const limit = Math.max(1, Math.min(200, Number(options.limit) || 40));
     const offset = Math.max(0, Math.floor(Number(options.offset) || 0));
     const [count] = await execute('SELECT COUNT(*)::integer AS count FROM movies m' + where.sql, where.params);
-    const rows = await execute('SELECT m.data FROM movies m' + where.sql + ' ORDER BY ' + catalogSort(options.sort, 'postgres') + ' LIMIT ? OFFSET ?', [...where.params, limit, offset]);
+    const order = catalogOrder(options, 'postgres');
+    const rows = await execute('SELECT m.data FROM movies m' + where.sql + ' ORDER BY ' + order.sql + ' LIMIT ? OFFSET ?', [...where.params, ...order.params, limit, offset]);
     let facetCounts;
     if (options.facets) {
       const filters = normalizeFilters(options.filters);

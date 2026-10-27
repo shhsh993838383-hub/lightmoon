@@ -226,8 +226,6 @@ svg { flex-shrink: 0; }
 .rating-scale, .rating-count { color: var(--secondary); font-size: 10px; }
 .rating-count { display: block; line-height: 1.8; margin-top: 3px; }
 .rating-explanation, .rating-audience { color: var(--secondary); font-size: 10px; line-height: 1.8; margin-top: 12px; }
-.rating-admission { color: var(--secondary); font-size: 10px; line-height: 1.8; margin-top: 8px; }
-.rating-admission span { color: var(--accent); font-weight: 650; }
 .rating-audience strong { color: var(--text); font-weight: 600; }
 .global-movie .film-ratings-compact { width: 100%; }
 .more-genres { display: inline-flex; align-items: center; min-height: 32px; gap: 4px; padding: 8px 0 0; font-size: 10px; color: var(--secondary); }
@@ -334,6 +332,51 @@ svg { flex-shrink: 0; }
 .collection-description { display: block; color: var(--secondary); font-size: 13px; line-height: 1.8; }
 .collection-total { display: block; color: var(--muted); font-size: 11px; margin-top: 8px; }
 .collection-tile:hover .collection-title { color: var(--accent); }
+.collection-browser > section { margin-top: 56px; }
+.collection-section-heading { margin-bottom: 25px; }
+.collection-section-heading h2 { font-size: 24px; font-weight: 650; letter-spacing: -.6px; }
+.collection-section-heading p { margin-top: 9px; color: var(--secondary); font-size: 13px; line-height: 1.8; }
+.series-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 36px 26px; }
+.series-grid .collection-cover { padding: 20px 16px 0; gap: 10px; }
+.series-grid .collection-title { font-size: 19px; margin-top: 18px; }
+.top250-feature { display: grid; grid-template-columns: 1fr 1fr; width: 100%; text-align: left; gap: 30px; padding: 40px 44px; background: var(--surface); border-radius: 16px; overflow: hidden; }
+.top250-copy { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; }
+.top250-count { font-size: 82px; font-weight: 650; line-height: 1.1; letter-spacing: -5px; color: var(--accent); }
+.top250-count span { font-size: 12px; letter-spacing: 0; margin-left: 14px; font-weight: 500; color: var(--secondary); }
+.top250-copy > strong { font-size: 28px; font-weight: 650; margin-top: 15px; letter-spacing: -.7px; }
+.top250-copy > span:not(.top250-count) { font-size: 13px; line-height: 1.8; margin-top: 12px; color: var(--secondary); }
+.top250-copy > .top250-link { display: inline-flex; gap: 12px; align-items: center; color: var(--text); font-weight: 600; margin-top: 22px; }
+.top250-posters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: center; min-width: 0; }
+.top250-posters .poster { width: 100%; box-shadow: 0 10px 24px rgb(var(--shadow) / .16); }
+.top250-posters .poster:nth-child(2) { margin-top: -26px; }
+.top250-posters .poster:nth-child(3) { margin-top: 26px; }
+.collection-breadcrumb { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; color: var(--secondary); font-size: 11px; margin-bottom: 26px; }
+.collection-breadcrumb button { display: inline-flex; align-items: center; gap: 8px; padding: 0; }
+.collection-breadcrumb button:hover { color: var(--accent); }
+.collection-breadcrumb svg { transform: rotate(180deg); }
+.collection-rank { display: flex; justify-content: space-between; color: var(--secondary); font-size: 10px; line-height: 1.6; margin-top: 12px; }
+.collection-rank strong { color: var(--accent); font-weight: 650; }
+
+@media (max-width: 1023px) {
+  .series-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .top250-feature { padding: 32px; }
+}
+@media (max-width: 767px) {
+  .top250-feature { grid-template-columns: 1fr; padding: 28px 24px; gap: 32px; }
+  .top250-copy { display: grid; grid-template-columns: auto 1fr; gap: 4px 24px; align-items: center; }
+  .top250-count { grid-row: span 2; font-size: 64px; letter-spacing: -4px; }
+  .top250-count span { display: block; margin: 6px 0 0; }
+  .top250-copy > strong { font-size: 22px; margin-top: 0; }
+  .top250-copy > span:not(.top250-count) { margin-top: 0; font-size: 11px; }
+  .top250-copy > .top250-link { grid-column: 1 / -1; margin-top: 14px; }
+  .top250-posters { padding: 12px 10px 0; }
+  .collection-browser > section { margin-top: 38px; }
+  .collection-section-heading h2 { font-size: 22px; }
+  .series-grid { gap: 28px 18px; }
+  .series-grid .collection-title { font-size: 16px; gap: 8px; line-height: 1.5; }
+  .series-grid .collection-cover { gap: 6px; padding: 14px 10px 0; }
+  .series-grid .collection-description { font-size: 11px; }
+}
 
 dialog { padding: 0; border: 1px solid var(--line); border-radius: 16px; color: var(--text); background: var(--header); max-height: calc(100dvh - 48px); overflow-y: auto; box-shadow: 0 28px 90px rgb(var(--shadow) / .2); }
 dialog::backdrop { background: rgb(8 10 12 / .68); backdrop-filter: blur(5px); }

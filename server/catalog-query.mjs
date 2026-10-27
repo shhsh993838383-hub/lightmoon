@@ -113,3 +113,11 @@ export function facetSuggestionQuery({ group, query = '', filters = {}, mode = '
 }
 
 export const catalogSort = (sort, dialect = 'sqlite') => ({ newest: 'm.year IS NULL, m.year DESC, m.rowid', oldest: 'm.year IS NULL, m.year, m.rowid', shortest: 'm.minutes IS NULL, m.minutes, m.rowid', rating: 'm.rating IS NULL, m.rating DESC, m.votes DESC, m.rowid' }[sort] || 'm.curated DESC, m.rowid').replaceAll('m.rowid', dialect === 'postgres' ? 'm.sequence' : 'm.rowid');
+
+export function catalogOrder(options, dialect = 'sqlite') {
+  if (options.sort !== 'collection' || !Array.isArray(options.ids)) return { sql: catalogSort(options.sort, dialect), params: [] };
+  return {
+    sql: dialect === 'postgres' ? '(SELECT position FROM jsonb_array_elements_text(?::jsonb) WITH ORDINALITY AS selected(value,position) WHERE selected.value=m.id)' : '(SELECT CAST(selected.key AS INTEGER) FROM json_each(?) selected WHERE selected.value=m.id)',
+    params: [JSON.stringify(options.ids)],
+  };
+}

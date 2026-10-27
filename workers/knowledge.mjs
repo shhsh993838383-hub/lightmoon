@@ -1,4 +1,4 @@
-import { catalogSort, catalogWhere, normalizeFilters, facetSuggestionQuery } from '../server/catalog-query.mjs';
+import { catalogOrder, catalogWhere, normalizeFilters, facetSuggestionQuery } from '../server/catalog-query.mjs';
 import { movieDocument, tokenize } from '../server/knowledge-document.mjs';
 import { mergeCatalog } from '../server/catalog-merge.mjs';
 import { facets, toggleFilter } from '../src/lib/catalog.js';
@@ -30,7 +30,8 @@ export function createD1KnowledgeBase(db) {
     const limit = Math.max(1, Math.min(200, Math.floor(Number(options.limit) || 40)));
     const offset = Math.max(0, Math.floor(Number(options.offset) || 0));
     const count = await first('SELECT COUNT(*) AS total FROM movies m' + where.sql, where.params);
-    const rows = await all('SELECT m.data FROM movies m' + where.sql + ' ORDER BY ' + catalogSort(options.sort) + ' LIMIT ? OFFSET ?', [...where.params, limit, offset]);
+    const order = catalogOrder(options, 'd1');
+    const rows = await all('SELECT m.data FROM movies m' + where.sql + ' ORDER BY ' + order.sql + ' LIMIT ? OFFSET ?', [...where.params, ...order.params, limit, offset]);
     let facetCounts;
     if (options.facets) {
       const filters = normalizeFilters(options.filters);
@@ -42,11 +43,11 @@ export function createD1KnowledgeBase(db) {
       if (!facetCounts) {
       const entries = [], groups = [];
       let queries = [], params = [];
-      const flush = () => { if (queries.length) groups.push(prepared('SELECT ' + queries.join(', '), params)); queries = []; params = []; };
+      const flush = () => { if (queries.length) groups.push(prepared('SELECT ' + queries.join(', ') + ' FROM movies m', params)); queries = []; params = []; };
       for (const facet of facets) for (const value of facet.options) {
         const clause = catalogWhere({ ...input, filters: toggleFilter(filters, facet.id, value) });
         if (params.length + clause.params.length > 90 || queries.length >= 8) flush();
-        queries.push('(SELECT COUNT(*) FROM movies m' + clause.sql + ') AS c' + entries.length);
+        queries.push('COALESCE(SUM(CASE WHEN ' + (clause.sql ? clause.sql.slice(7) : '1') + ' THEN 1 ELSE 0 END),0) AS c' + entries.length);
         params.push(...clause.params); entries.push([facet.id, value]);
       }
       flush();
@@ -81,7 +82,7 @@ export function createD1KnowledgeBase(db) {
       }
       const document = movieDocument(movie);
       statements.push(prepared(`INSERT INTO movies(id,data,document,tmdb_id,year,minutes,rating,votes,curated) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data,document=excluded.document,tmdb_id=excluded.tmdb_id,year=excluded.year,minutes=excluded.minutes,rating=excluded.rating,votes=excluded.votes,curated=excluded.curated`, [movie.id, JSON.stringify(movie), document, movie.tmdbId, movie.year, movie.minutes, movie.tmdbRating?.average ?? null, movie.tmdbRating?.votes ?? null, movie.tagStatus === 'tmdb-unreviewed' ? 0 : 1]));
-      statements.push(prepared('DELETE FROM movie_search WHERE movie_id = ?', [movie.id]), prepared('INSERT INTO movie_search(movie_id,tokens) VALUES (?,?)', [movie.id, tokenize(document).join(' ')]));
+      statements.push(prepared('INSERT OR REPLACE INTO movie_search(rowid,movie_id,tokens) SELECT rowid,id,? FROM movies WHERE id=?', [tokenize(document).join(' '), movie.id]));
     }
     if (statements.length) await db.batch(statements);
     cachedStats = null;

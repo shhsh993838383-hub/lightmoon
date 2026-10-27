@@ -17,14 +17,14 @@ async function readStaticCatalog() {
   return staticCatalog;
 }
 
-export default function useCatalog({ query, filters, mode, sort, saved, watched, view, revision }) {
+export default function useCatalog({ query, filters, mode, sort, saved, watched, view, collection, revision }) {
   const [movies, setMovies] = useState(() => seedMovies.filter(meetsRatingPolicy));
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const request = useRef(null);
   const resultRef = useRef(null);
-  const input = JSON.stringify({ query, filters, mode, sort, ids: view === 'saved' ? saved : view === 'watched' ? watched : undefined });
+  const input = JSON.stringify({ query, filters, mode, sort, ids: view === 'saved' ? saved : view === 'watched' ? watched : view === 'collection' ? collection?.movies.map(movie => movie.id) : undefined });
   const remember = useCallback(incoming => setMovies(current => [...new Map([...current, ...incoming].map(movie => [movie.id, movie])).values()].filter(meetsRatingPolicy)), []);
 
   const load = useCallback(async (offset = 0) => {
@@ -44,7 +44,9 @@ export default function useCatalog({ query, filters, mode, sort, saved, watched,
       } else {
         const snapshot = await readStaticCatalog();
         const library = snapshot.movies.filter(movie => (!selected.ids || selected.ids.includes(movie.id)) && matchesQuery(movie, selected.query));
-        const found = sortMovies(library.filter(movie => matchesFilters(movie, selected.filters, selected.mode)), selected.sort);
+        const order = new Map((selected.ids || []).map((id, index) => [id, index]));
+        const eligible = library.filter(movie => matchesFilters(movie, selected.filters, selected.mode));
+        const found = selected.sort === 'collection' ? eligible.sort((a, b) => order.get(a.id) - order.get(b.id)) : sortMovies(eligible, selected.sort);
         const facetCounts = Object.fromEntries(facets.map(facet => [facet.id, Object.fromEntries(facet.options.map(value => [value, library.filter(movie => matchesFilters(movie, toggleFilter(selected.filters, facet.id, value), selected.mode)).length]))]));
         catalog = { ...snapshot, movies: found.slice(offset, offset + 40), total: found.length, facetCounts, offset, limit: 40 };
         remember(snapshot.movies);
