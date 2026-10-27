@@ -1,0 +1,849 @@
+[
+  {
+    "title": "布达佩斯大饭店",
+    "year": 2014,
+    "minutes": 99,
+    "genre": [
+      "喜剧",
+      "剧情"
+    ],
+    "mood": [
+      "轻松有趣",
+      "荒诞",
+      "感伤"
+    ],
+    "theme": [
+      "友情",
+      "社会观察"
+    ],
+    "pace": [
+      "快速"
+    ],
+    "structure": [
+      "框架叙事"
+    ],
+    "text": "一位礼宾员与门童卷入遗产风波，讲述方式带着精巧的戏剧感。",
+    "id": "grand-budapest",
+    "originalTitle": "The Grand Budapest Hotel",
+    "director": "韦斯·安德森",
+    "country": "美国 / 德国",
+    "language": "英语",
+    "poster": "/posters/grand-budapest.webp",
+    "posterWidth": 220,
+    "posterHeight": 344,
+    "source": {
+      "page": "https://en.wikipedia.org/wiki/The_Grand_Budapest_Hotel",
+      "poster": "https://upload.wikimedia.org/wikipedia/en/1/1c/The_Grand_Budapest_Hotel.png",
+      "summaryTitle": "The Grand Budapest Hotel"
+    },
+    "tagStatus": "editorial-demo"
+  },
+  {
+    "title": "花样年华",
+    "year": 2000,
+    "minutes": 98,
+    "genre": [
+      "剧情",
+      "爱情"
+    ],
+    "mood": [
+      "浪漫",
+      "感伤"
+    ],
+    "theme": [
+      "亲密关系"
+    ],
+    "pace": [
+      "舒缓"
+    ],
+    "structure": [
+      "顺叙为主"
+    ],
+    "text": "二十世纪六十年代的香港，两位邻居在日常往来中逐渐靠近彼此。",
+    "id": "in-the-mood",
+    "originalTitle": "In the Mood for Love",
+    "director": "王家卫",
+    "country": "中国香港 / 法国",
+    "language": "粤语 / 上海话",
+    "poster": "/posters/in-the-mood.webp",
+    "posterWidth": 265,
+    "posterHeight": 376,
+    "source": {
+      "page": "https://en.wikipedia.org/wiki/In_the_Mood_for_Love",
+      "poster": "https://upload.wikimedia.org/wikipedia/en/4/45/In_the_Mood_for_Love_movie.jpg",
+      "summaryTitle": "In the Mood for Love"
+    },
+    "tagStatus": "editorial-demo"
+  },
+  {
+    "title": "怦然心动",
+    "year": 2010,
+    "minutes": 90,
+    "genre": [
+      "爱情",
+      "喜剧",
+      "剧情"
+    ],
+    "mood": [
+      "轻松有趣",
+      "温暖",
+      "浪漫"
+    ],
+    "theme": [
+      "亲密关系",
+      "成长",
+      "家庭"
+    ],
+    "pace": [
+      "舒缓"
+    ],
+    "structure": [
+      "多线叙事"
+    ],
+    "text": "同一段少年往事，从男孩和女孩的不同视角慢慢展开。",
+    "id": "flipped",
+    "originalTitle": "Flipped",
+    "director": "罗伯·莱纳",
+    "country": "美国",
+    "language": "英语",
+    "poster": "/posters/flipped.webp",
+    "posterWidth": 259,
+    "posterHeight": 385,
+    "source": {
+      "page": "https://en.wikipedia.org/wiki/Flipped_(2010_film)",
+      "poster": "https://upload.wikimedia.org/wikipedia/en/3/3a/Flipped_poster.jpg",
+      "summaryTitle": "Flipped (2010 film)"
+    },
+    "tagStatus": "editorial-demo"
+  },
+  {
+    "title": "白日梦想家",
+    "year": 2013,
+    "minutes": 114,
+    "genre": [
+      "剧情",
+      "喜剧"
+    ],
+    "mood": [
+      "轻松有趣",
+      "温暖"
+    ],
+    "theme": [
+      "自我探索",
+      "成长"
+    ],
+    "pace": [
+      "层层推进"
+    ],
+    "structure": [
+      "顺叙为主"
+    ],
+    "text": "习惯在脑海中冒险的普通职员，踏上一段真实的远行。",
+    "id": "walter-mitty",
+    "originalTitle": "The Secret Life of Walter Mitty",
+    "director": "本·斯蒂勒",
+    "country": "美国",
+    "language": "英语",
+    "poster": "/posters/walter-mitty.webp",
+    "posterWidth": 250,
+    "posterHeight": 370,
+    "source": {
+      "page": "https://en.wikipedia.org/wiki/The_Secret_Life_of_Walter_Mitty_(2013_film)",
+      "poster": "https://upload.wikimedia.org/wikipedia/en/f/f2/The_Secret_Life_of_Walter_Mitty_2013_poster.jpg",
+      "summaryTitle": "The Secret Life of Walter Mitty (2013 film)"
+    },
+    "tagStatus": "editorial-demo"
+  },
+  {
+    "title": "星际穿越",
+    "year": 2014,
+    "minutes": 169,
+    "genre": [
+      "科幻",
+      "剧情"
+    ],
+    "mood": [
+      "紧张",
+      "感伤"
+    ],
+    "theme": [
+      "家庭",
+      "自我探索"
+    ],
+    "pace": [
+      "层层推进"
+    ],
+    "structure": [
+      "多线叙事"
+    ],
+    "text": "一次跨越星际的远行，把人类的生存与父女之间的牵挂连在一起。",
+    "id": "interstellar",
+    "originalTitle": "Interstellar",
+    "director": "克里斯托弗·诺兰",
+    "country": "美国 / 英国",
+    "language": "英语",
+    "poster": "/posters/interstellar.webp",
+    "posterWidth": 220,
+    "posterHeight": 326,
+    "source": {
+      "page": "https://en.wikipedia.org/wiki/Interstellar_(film)",
+      "poster": "https://upload.wikimedia.org/wikipedia/en/b/bc/Interstellar_film_poster.jpg",
+      "summaryTitle": "Interstellar (film)"
+    },
+    "tagStatus": "editorial-demo"
+  },
+  {
+    "title": "龙猫",
+    "year": 1988,
+    "minutes": 86,
+    "genre": [
+      "动画",
+      "奇幻"
+    ],
+    "mood": [
+      "温暖",
+      "轻松有趣"
+    ],
+    "theme": [
+      "家庭",
+      "成长"
+    ],
+    "pace": [
+      "舒缓"
+    ],
+    "structure": [
+      "顺叙为主"
+    ],
+    "text": "姐妹俩搬到乡间，在等待与探索中遇见森林里的奇妙邻居。",
+    "id": "totoro",
+    "originalTitle": "となりのトトロ",
+    "director": "宫崎骏",
+    "country": "日本",
+    "language": "日语",
+    "poster": "/posters/totoro.webp",
+    "posterWidth": 268,
+    "posterHeight": 371,
+    "source": {
+      "page": "https://en.wikipedia.org/wiki/My_Neighbor_Totoro",
+      "poster": "https://upload.wikimedia.org/wikipedia/en/0/02/My_Neighbor_Totoro_-_Tonari_no_Totoro_%28Movie_Poster%29.jpg",
+      "summaryTitle": "My Neighbor Totoro"
+    },
+    "tagStatus": "editorial-demo"
+  },
+  {
+    "title": "楚门的世界",
+    "year": 1998,
+    "minutes": 103,
+    "genre": [
+      "剧情",
+      "喜剧",
+      "科幻"
+    ],
+    "mood": [
+      "荒诞",
+      "紧张"
+    ],
+    "theme": [
+      "自我探索",
+      "社会观察"
+    ],
+    "pace": [
+      "层层推进"
+    ],
+    "structure": [
+      "顺叙为主"
+    ],
+    "text": "一个生活看似平静的人，逐渐察觉周围世界的异样。",
+    "id": "truman",
+    "originalTitle": "The Truman Show",
+    "director": "彼得·威尔",
+    "country": "美国",
+    "language": "英语",
+    "poster": "/posters/truman.webp",
+    "posterWidth": 220,
+    "posterHeight": 327,
+    "source": {
+      "page": "https://en.wikipedia.org/wiki/The_Truman_Show",
+      "poster": "https://upload.wikimedia.org/wikipedia/en/c/cd/Trumanshow.jpg",
+      "summaryTitle": "The Truman Show"
+    },
+    "tagStatus": "editorial-demo"
+  },
+  {
+    "title": "寻梦环游记",
+    "year": 2017,
+    "minutes": 105,
+    "genre": [
+      "动画",
+      "奇幻",
+      "喜剧"
+    ],
+    "mood": [
+      "温暖",
+      "感伤"
+    ],
+    "theme": [
+      "家庭",
+      "成长"
+    ],
+    "pace": [
+      "层层推进"
+    ],
+    "structure": [
+      "顺叙为主"
+    ],
+    "text": "从一个少年的音乐梦想出发，走进关于家人与记忆的故事。",
+    "id": "coco",
+    "originalTitle": "Coco",
+    "director": "李·昂克里奇 / 阿德里安·莫利纳",
+    "country": "美国",
+    "language": "英语",
+    "poster": "/posters/coco.webp",
+    "posterWidth": 259,
+    "posterHeight": 384,
+    "source": {
+      "page": "https://en.wikipedia.org/wiki/Coco_(2017_film)",
+      "poster": "https://upload.wikimedia.org/wikipedia/en/9/98/Coco_%282017_film%29_poster.jpg",
+      "summaryTitle": "Coco (2017 film)"
+    },
+    "tagStatus": "editorial-demo"
+  },
+  {
+    "title": "触不可及",
+    "year": 2011,
+    "minutes": 112,
+    "genre": [
+      "剧情",
+      "喜剧"
+    ],
+    "mood": [
+      "轻松有趣",
+      "温暖",
+      "感伤"
+    ],
+    "theme": [
+      "友情",
+      "自我探索"
+    ],
+    "pace": [
+      "层层推进"
+    ],
+    "structure": [
+      "框架叙事"
+    ],
+    "text": "生活经历迥异的两个人，在相处与照料中建立友谊。",
+    "id": "intouchables",
+    "originalTitle": "Intouchables",
+    "director": "奥利维埃·纳卡什 / 埃里克·托莱达诺",
+    "country": "法国",
+    "language": "法语",
+    "poster": "/posters/intouchables.webp",
+    "posterWidth": 220,
+    "posterHeight": 299,
+    "source": {
+      "page": "https://en.wikipedia.org/wiki/The_Intouchables",
+      "poster": "https://upload.wikimedia.org/wikipedia/en/9/93/The_Intouchables.jpg",
+      "summaryTitle": "The Intouchables"
+    },
+    "tagStatus": "editorial-demo"
+  },
+  {
+    "title": "天使爱美丽",
+    "year": 2001,
+    "minutes": 122,
+    "genre": [
+      "爱情",
+      "喜剧"
+    ],
+    "mood": [
+      "轻松有趣",
+      "温暖",
+      "浪漫"
+    ],
+    "theme": [
+      "亲密关系",
+      "自我探索"
+    ],
+    "pace": [
+      "舒缓"
+    ],
+    "structure": [
+      "顺叙为主"
+    ],
+    "text": "一位巴黎女孩以细小而古怪的善意，悄悄参与身边人的生活。",
+    "id": "amelie",
+    "originalTitle": "Le Fabuleux Destin d’Amélie Poulain",
+    "director": "让-皮埃尔·热内",
+    "country": "法国 / 德国",
+    "language": "法语",
+    "poster": "/posters/amelie.webp",
+    "posterWidth": 250,
+    "posterHeight": 361,
+    "source": {
+      "page": "https://en.wikipedia.org/wiki/Am%C3%A9lie",
+      "poster": "https://upload.wikimedia.org/wikipedia/en/5/53/Amelie_poster.jpg",
+      "summaryTitle": "Amélie"
+    },
+    "tagStatus": "editorial-demo"
+  },
+  {
+    "title": "心灵奇旅",
+    "year": 2020,
+    "minutes": 100,
+    "genre": [
+      "动画",
+      "奇幻",
+      "喜剧"
+    ],
+    "mood": [
+      "温暖",
+      "感伤"
+    ],
+    "theme": [
+      "自我探索",
+      "成长"
+    ],
+    "pace": [
+      "层层推进"
+    ],
+    "structure": [
+      "顺叙为主"
+    ],
+    "text": "一位爵士乐老师在奇妙旅途中，重新感受日常生活的意义。",
+    "id": "soul",
+    "originalTitle": "Soul",
+    "director": "彼特·道格特 / 凯普·鲍尔斯",
+    "country": "美国",
+    "language": "英语",
+    "poster": "/posters/soul.webp",
+    "posterWidth": 250,
+    "posterHeight": 370,
+    "source": {
+      "page": "https://en.wikipedia.org/wiki/Soul_(2020_film)",
+      "poster": "https://upload.wikimedia.org/wikipedia/en/3/39/Soul_%282020_film%29_poster.jpg",
+      "summaryTitle": "Soul (2020 film)"
+    },
+    "tagStatus": "editorial-demo"
+  },
+  {
+    "title": "疯狂动物城",
+    "year": 2016,
+    "minutes": 109,
+    "genre": [
+      "动画",
+      "喜剧",
+      "悬疑"
+    ],
+    "mood": [
+      "轻松有趣",
+      "温暖",
+      "紧张"
+    ],
+    "theme": [
+      "友情",
+      "成长",
+      "社会观察"
+    ],
+    "pace": [
+      "快速"
+    ],
+    "structure": [
+      "顺叙为主"
+    ],
+    "text": "兔子警官与狐狸搭档调查案件，也看见城市里的偏见。",
+    "id": "zootopia",
+    "originalTitle": "Zootopia",
+    "director": "拜伦·霍华德 / 瑞奇·摩尔",
+    "country": "美国",
+    "language": "英语",
+    "poster": "/posters/zootopia.webp",
+    "posterWidth": 220,
+    "posterHeight": 326,
+    "source": {
+      "page": "https://en.wikipedia.org/wiki/Zootopia",
+      "poster": "https://upload.wikimedia.org/wikipedia/en/9/96/Zootopia_%28movie_poster%29.jpg",
+      "summaryTitle": "Zootopia"
+    },
+    "tagStatus": "editorial-demo"
+  },
+  {
+    "title": "土拨鼠之日",
+    "year": 1993,
+    "minutes": 101,
+    "genre": [
+      "喜剧",
+      "爱情",
+      "奇幻"
+    ],
+    "mood": [
+      "轻松有趣",
+      "浪漫",
+      "荒诞"
+    ],
+    "theme": [
+      "亲密关系",
+      "自我探索",
+      "成长"
+    ],
+    "pace": [
+      "层层推进"
+    ],
+    "structure": [
+      "时间循环"
+    ],
+    "text": "一个不耐烦的天气预报员，发现自己不断经历同一天。",
+    "id": "groundhog",
+    "originalTitle": "Groundhog Day",
+    "director": "哈罗德·雷米斯",
+    "country": "美国",
+    "language": "英语",
+    "poster": "/posters/groundhog.webp",
+    "posterWidth": 259,
+    "posterHeight": 385,
+    "source": {
+      "page": "https://en.wikipedia.org/wiki/Groundhog_Day_(film)",
+      "poster": "https://upload.wikimedia.org/wikipedia/en/b/b1/Groundhog_Day_%28movie_poster%29.jpg",
+      "summaryTitle": "Groundhog Day (film)"
+    },
+    "tagStatus": "editorial-demo"
+  },
+  {
+    "title": "海街日记",
+    "year": 2015,
+    "minutes": 128,
+    "genre": [
+      "剧情"
+    ],
+    "mood": [
+      "温暖",
+      "感伤"
+    ],
+    "theme": [
+      "家庭",
+      "成长"
+    ],
+    "pace": [
+      "舒缓"
+    ],
+    "structure": [
+      "顺叙为主"
+    ],
+    "text": "四姐妹在镰仓共同生活，故事藏在饭桌、海风与季节变化里。",
+    "id": "our-little-sister",
+    "originalTitle": "海街diary",
+    "director": "是枝裕和",
+    "country": "日本",
+    "language": "日语",
+    "poster": "/posters/our-little-sister.webp",
+    "posterWidth": 265,
+    "posterHeight": 375,
+    "source": {
+      "page": "https://en.wikipedia.org/wiki/Our_Little_Sister",
+      "poster": "https://upload.wikimedia.org/wikipedia/en/4/4b/Our_Little_Sister_poster.jpeg",
+      "summaryTitle": "Our Little Sister"
+    },
+    "tagStatus": "editorial-demo"
+  },
+  {
+    "title": "盗梦空间",
+    "year": 2010,
+    "minutes": 148,
+    "genre": [
+      "科幻",
+      "悬疑"
+    ],
+    "mood": [
+      "紧张"
+    ],
+    "theme": [
+      "自我探索",
+      "家庭"
+    ],
+    "pace": [
+      "快速"
+    ],
+    "structure": [
+      "多层梦境",
+      "多线叙事"
+    ],
+    "text": "一支进入他人梦境的团队，尝试完成一项层层深入的任务。",
+    "id": "inception",
+    "originalTitle": "Inception",
+    "director": "克里斯托弗·诺兰",
+    "country": "美国 / 英国",
+    "language": "英语",
+    "poster": "/posters/inception.webp",
+    "posterWidth": 220,
+    "posterHeight": 326,
+    "source": {
+      "page": "https://en.wikipedia.org/wiki/Inception",
+      "poster": "https://upload.wikimedia.org/wikipedia/en/2/2e/Inception_%282010%29_theatrical_poster.jpg",
+      "summaryTitle": "Inception"
+    },
+    "tagStatus": "editorial-demo"
+  },
+  {
+    "title": "十二怒汉",
+    "year": 1957,
+    "minutes": 96,
+    "genre": [
+      "剧情",
+      "悬疑"
+    ],
+    "mood": [
+      "紧张"
+    ],
+    "theme": [
+      "社会观察"
+    ],
+    "pace": [
+      "层层推进"
+    ],
+    "structure": [
+      "顺叙为主"
+    ],
+    "text": "十二名陪审员围绕一桩案件展开讨论，每一次质疑都改变局面。",
+    "id": "12-angry-men",
+    "originalTitle": "12 Angry Men",
+    "director": "西德尼·吕美特",
+    "country": "美国",
+    "language": "英语",
+    "poster": "/posters/12-angry-men.webp",
+    "posterWidth": 589,
+    "posterHeight": 900,
+    "source": {
+      "page": "https://en.wikipedia.org/wiki/12_Angry_Men",
+      "poster": "https://upload.wikimedia.org/wikipedia/commons/b/b5/12_Angry_Men_%281957_film_poster%29.jpg",
+      "summaryTitle": "12 Angry Men"
+    },
+    "tagStatus": "editorial-demo"
+  },
+  {
+    "title": "罗马假日",
+    "year": 1953,
+    "minutes": 118,
+    "genre": [
+      "爱情",
+      "喜剧"
+    ],
+    "mood": [
+      "轻松有趣",
+      "浪漫",
+      "感伤"
+    ],
+    "theme": [
+      "亲密关系",
+      "自我探索"
+    ],
+    "pace": [
+      "舒缓"
+    ],
+    "structure": [
+      "顺叙为主"
+    ],
+    "text": "一位公主暂时离开礼仪与职责，在罗马体验普通人的一天。",
+    "id": "roman-holiday",
+    "originalTitle": "Roman Holiday",
+    "director": "威廉·惠勒",
+    "country": "美国",
+    "language": "英语 / 意大利语",
+    "poster": "/posters/roman-holiday.webp",
+    "posterWidth": 595,
+    "posterHeight": 900,
+    "source": {
+      "page": "https://en.wikipedia.org/wiki/Roman_Holiday",
+      "poster": "https://upload.wikimedia.org/wikipedia/commons/d/d0/Roman_Holiday_%281953_poster%29.jpg",
+      "summaryTitle": "Roman Holiday"
+    },
+    "tagStatus": "editorial-demo"
+  },
+  {
+    "title": "重庆森林",
+    "year": 1994,
+    "minutes": 102,
+    "genre": [
+      "剧情",
+      "爱情"
+    ],
+    "mood": [
+      "浪漫",
+      "感伤",
+      "轻松有趣"
+    ],
+    "theme": [
+      "亲密关系",
+      "自我探索"
+    ],
+    "pace": [
+      "层层推进"
+    ],
+    "structure": [
+      "多线叙事"
+    ],
+    "text": "两段关于失恋与相遇的故事，在香港街头与一家小食店之间展开。",
+    "id": "chungking-express",
+    "originalTitle": "Chungking Express",
+    "director": "王家卫",
+    "country": "中国香港",
+    "language": "粤语 / 普通话",
+    "poster": "/posters/chungking-express.webp",
+    "posterWidth": 259,
+    "posterHeight": 383,
+    "source": {
+      "page": "https://en.wikipedia.org/wiki/Chungking_Express",
+      "poster": "https://upload.wikimedia.org/wikipedia/en/c/c0/Chungking_Express.jpg",
+      "summaryTitle": "Chungking Express"
+    },
+    "tagStatus": "editorial-demo"
+  },
+  {
+    "title": "让子弹飞",
+    "year": 2010,
+    "minutes": 132,
+    "genre": [
+      "剧情",
+      "喜剧"
+    ],
+    "mood": [
+      "荒诞",
+      "紧张"
+    ],
+    "theme": [
+      "社会观察"
+    ],
+    "pace": [
+      "层层推进"
+    ],
+    "structure": [
+      "顺叙为主"
+    ],
+    "text": "一位冒名上任的县长进入鹅城，与当地豪强展开一场充满机锋的较量。",
+    "id": "bullets-fly",
+    "originalTitle": "Let the Bullets Fly",
+    "director": "姜文",
+    "country": "中国大陆 / 中国香港",
+    "language": "普通话",
+    "poster": "/posters/bullets-fly.webp",
+    "posterWidth": 260,
+    "posterHeight": 383,
+    "source": {
+      "page": "https://en.wikipedia.org/wiki/Let_the_Bullets_Fly",
+      "poster": "https://upload.wikimedia.org/wikipedia/en/b/b3/Let_the_Bullets_Fly.jpg",
+      "summaryTitle": "Let the Bullets Fly"
+    },
+    "tagStatus": "editorial-demo"
+  },
+  {
+    "title": "饮食男女",
+    "year": 1994,
+    "minutes": 124,
+    "genre": [
+      "剧情",
+      "喜剧"
+    ],
+    "mood": [
+      "温暖",
+      "感伤"
+    ],
+    "theme": [
+      "家庭",
+      "亲密关系"
+    ],
+    "pace": [
+      "舒缓"
+    ],
+    "structure": [
+      "多线叙事"
+    ],
+    "text": "一位退休厨师与三个女儿的生活，在每周家宴与各自的选择中发生变化。",
+    "id": "eat-drink",
+    "originalTitle": "Eat Drink Man Woman",
+    "director": "李安",
+    "country": "中国台湾 / 美国",
+    "language": "普通话",
+    "poster": "/posters/eat-drink.webp",
+    "posterWidth": 248,
+    "posterHeight": 372,
+    "source": {
+      "page": "https://en.wikipedia.org/wiki/Eat_Drink_Man_Woman",
+      "poster": "https://upload.wikimedia.org/wikipedia/en/b/b4/Eat_Drink_Man_Woman.jpg",
+      "summaryTitle": "Eat Drink Man Woman"
+    },
+    "tagStatus": "editorial-demo"
+  },
+  {
+    "title": "活着",
+    "year": 1994,
+    "minutes": 132,
+    "genre": [
+      "剧情"
+    ],
+    "mood": [
+      "感伤"
+    ],
+    "theme": [
+      "家庭",
+      "社会观察"
+    ],
+    "pace": [
+      "层层推进"
+    ],
+    "structure": [
+      "顺叙为主"
+    ],
+    "text": "福贵一家在时代变化中经历生活起伏，故事始终围绕普通人的命运展开。",
+    "id": "to-live",
+    "originalTitle": "To Live",
+    "director": "张艺谋",
+    "country": "中国大陆 / 中国香港",
+    "language": "普通话",
+    "poster": "/posters/to-live.webp",
+    "posterWidth": 248,
+    "posterHeight": 367,
+    "source": {
+      "page": "https://en.wikipedia.org/wiki/To_Live_(1994_film)",
+      "poster": "https://upload.wikimedia.org/wikipedia/en/e/ef/To_Live_Poster.jpg",
+      "summaryTitle": "To Live (1994 film)"
+    },
+    "tagStatus": "editorial-demo"
+  },
+  {
+    "title": "我不是药神",
+    "year": 2018,
+    "minutes": 117,
+    "genre": [
+      "剧情",
+      "喜剧"
+    ],
+    "mood": [
+      "温暖",
+      "感伤",
+      "紧张"
+    ],
+    "theme": [
+      "社会观察",
+      "友情"
+    ],
+    "pace": [
+      "层层推进"
+    ],
+    "structure": [
+      "顺叙为主"
+    ],
+    "text": "一家小店的店主因一次代购药品的请求，走进一群病人的生活。",
+    "id": "dying-to-survive",
+    "originalTitle": "Dying to Survive",
+    "director": "文牧野",
+    "country": "中国大陆",
+    "language": "普通话",
+    "poster": "/posters/dying-to-survive.webp",
+    "posterWidth": 258,
+    "posterHeight": 387,
+    "source": {
+      "page": "https://en.wikipedia.org/wiki/Dying_to_Survive",
+      "poster": "https://upload.wikimedia.org/wikipedia/en/7/76/Dyingtosurvive.jpg",
+      "summaryTitle": "Dying to Survive"
+    },
+    "tagStatus": "editorial-demo"
+  }
+]
