@@ -181,6 +181,11 @@ svg { flex-shrink: 0; }
 .save-button { flex-shrink: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; color: var(--muted); border-radius: 6px; }
 .save-button:hover { background: var(--surface-hover); color: var(--accent); }
 .save-button.is-saved { color: var(--accent); }
+.watched-toggle { display: inline-flex; align-items: center; gap: 5px; min-height: 30px; padding: 3px 5px; margin: 5px 0 0 -5px; border-radius: 6px; color: var(--secondary); font-size: 10px; }
+.watched-toggle:hover { background: var(--surface-hover); color: var(--accent); }
+.watched-toggle.is-watched { color: var(--accent); }
+.detail-list-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.detail-list-actions .is-watched { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
 .movie-meta { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: 10px; line-height: 1.8; white-space: nowrap; }
 .movie-meta > span:first-child { padding-right: 9px; border-right: 1px solid var(--line); font-variant-numeric: tabular-nums; line-height: 1; }
 .movie-moods { color: var(--secondary); font-size: 10px; line-height: 1.8; margin-top: 2px; }
@@ -533,7 +538,7 @@ dialog::backdrop { background: rgb(8 10 12 / .68); backdrop-filter: blur(5px); }
   .ai-movie-poster { width: 72px; }
 }
 @media (max-width: 767px) {
-  .mobile-nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .mobile-nav { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .search-box { width: 100%; }
   .ai-page-heading { gap: 12px; align-items: flex-start; }
   .ai-page-title { gap: 8px; }

@@ -14,14 +14,14 @@ async function readStaticCatalog() {
   return staticCatalog;
 }
 
-export default function useCatalog({ query, filters, mode, sort, saved, view, revision }) {
+export default function useCatalog({ query, filters, mode, sort, saved, watched, view, revision }) {
   const [movies, setMovies] = useState(seedMovies);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const request = useRef(null);
   const resultRef = useRef(null);
-  const input = JSON.stringify({ query, filters, mode, sort, ids: view === 'saved' ? saved : undefined });
+  const input = JSON.stringify({ query, filters, mode, sort, ids: view === 'saved' ? saved : view === 'watched' ? watched : undefined });
   const remember = useCallback(incoming => setMovies(current => [...new Map([...current, ...incoming].map(movie => [movie.id, movie])).values()]), []);
 
   const load = useCallback(async (offset = 0) => {
