@@ -31,6 +31,7 @@ export default function AuthDialog({ auth, onNotice }) {
     {auth.user ? <div className="account-panel">
       <UserCircle size={46} weight="light" /><h2>{auth.user.displayName}</h2><p>{auth.user.email}</p>
       <p className="account-note">你的评分、评论、想看和已看记录，已与账号关联。</p>
+      <p className="auth-smallprint">此浏览器会保留登录状态，最长 7 天。退出登录后立即清除。</p>
       {error && <p className="form-error" role="alert">{error}</p>}
       <button className="secondary-button" onClick={logout} disabled={busy}><SignOut size={18} />{busy ? '正在退出…' : '退出登录'}</button>
     </div> : <>
@@ -46,6 +47,7 @@ export default function AuthDialog({ auth, onNotice }) {
         {registering && <label htmlFor="auth-confirm">确认密码<input id="auth-confirm" name="confirm" type="password" autoComplete="new-password" placeholder="再次输入密码" minLength={6} maxLength={128} required disabled={busy} /></label>}
         {error && <p className="form-error" role="alert">{error}</p>}
         {registering && <p className="auth-smallprint">请使用自己的邮箱。当前无需邮件验证，暂不支持找回密码，请妥善保存密码。</p>}
+        <p className="auth-smallprint">登录后，在此浏览器保持登录 7 天。</p>
         <button className="primary-button auth-submit" disabled={busy || auth.checking}>{busy ? '正在处理…' : registering ? '注册并登录' : '登录光幕'}<ArrowRight size={17} /></button>
       </form>
       <div className="auth-guest"><button disabled={busy} onClick={auth.guest}>先以游客身份浏览<ArrowRight size={15} /></button><span>可浏览电影、评分和评论</span></div>

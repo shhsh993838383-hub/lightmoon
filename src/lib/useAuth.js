@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiUrl, hasApi } from './urls.js';
+import { createSessionStorage, sessionKey } from './session-storage.js';
 
-const sessionKey = 'lightmoon-session';
 const guestKey = 'lightmoon-guest';
 function read(key) { try { return sessionStorage.getItem(key); } catch { return null; } }
 function save(key, value) { try { if (value) sessionStorage.setItem(key, value); else sessionStorage.removeItem(key); } catch { /* In-memory sessions still work. */ } }
@@ -24,7 +24,9 @@ async function send(path, options = {}, token) {
 }
 
 export default function useAuth() {
-  const session = useRef(read(sessionKey));
+  const [sessions] = useState(() => createSessionStorage());
+  const [initialSession] = useState(() => sessions.load());
+  const session = useRef(initialSession?.token ?? null);
   const [user, setUser] = useState(null);
   const [checking, setChecking] = useState(Boolean(session.current));
   const [open, setOpen] = useState(!session.current && !read(guestKey));
@@ -34,8 +36,22 @@ export default function useAuth() {
   const currentUser = useRef(null);
 
   const forget = useCallback(() => {
-    session.current = null; currentUser.current = null; save(sessionKey, null); setUser(null);
-  }, []);
+    session.current = null; currentUser.current = null; sessions.clear(); setUser(null);
+  }, [sessions]);
+
+  useEffect(() => {
+    const sync = event => {
+      if (event.key !== sessionKey && event.key !== null) return;
+      const next = sessions.load({ migrateLegacy: false });
+      if ((next?.token ?? null) === session.current) return;
+      session.current = next?.token ?? null; currentUser.current = null;
+      setUser(null); setReason(''); setOpen(false); setChecking(Boolean(next));
+      if (!next) { sessions.clear(); save(guestKey, '1'); }
+      setRestoreAttempt(value => value + 1);
+    };
+    window.addEventListener('storage', sync);
+    return () => window.removeEventListener('storage', sync);
+  }, [sessions]);
   useEffect(() => {
     if (!session.current) { setChecking(false); return; }
     const controller = new AbortController();
@@ -46,7 +62,7 @@ export default function useAuth() {
     }).catch(error => {
       if (controller.signal.aborted || session.current !== restoring) return;
       if (error.status === 401) forget();
-      setReason(error.status === 401 ? '登录已过期，请重新登录。' : '暂时无法恢复登录。你可以重试，或先以游客身份浏览。');
+      setReason(error.status === 401 ? '登录已过期，请重新登录。' : '暂时无法恢复登录，已保留你的登录凭证。可以重试连接，或先以游客身份浏览。');
       setOpen(true);
     }).finally(() => { if (!controller.signal.aborted) setChecking(false); });
     return () => controller.abort();
@@ -63,10 +79,11 @@ export default function useAuth() {
   }, [forget, promptLogin]);
   const submit = useCallback(async (kind, input) => {
     const data = await send('/api/auth/' + kind, { method: 'POST', body: JSON.stringify(input) });
-    session.current = data.token; currentUser.current = data.user; save(sessionKey, data.token); save(guestKey, null);
-    setUser(data.user); setReason(''); setOpen(false);
-  }, []);
-  const guest = useCallback(() => { if (!currentUser.current) { forget(); save(guestKey, '1'); } setOpen(false); setReason(''); }, [forget]);
+    sessions.save(data);
+    session.current = data.token; currentUser.current = data.user; save(guestKey, null);
+    setUser(data.user); setChecking(false); setReason(''); setOpen(false);
+  }, [sessions]);
+  const guest = useCallback(() => { if (!currentUser.current) save(guestKey, '1'); setOpen(false); setReason(''); }, []);
   const logout = useCallback(async () => {
     await request('/api/auth/logout', { method: 'POST' });
     forget(); save(guestKey, '1'); setOpen(false); setReason('');
