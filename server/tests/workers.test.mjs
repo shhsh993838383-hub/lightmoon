@@ -80,10 +80,27 @@ test('Worker serves CORS-protected catalog and grounded AI without returning cre
     const result = JSON.parse(text); assert.equal(result.mode, 'deepseek'); assert.equal(result.recommendations[0].id, 'tmdb-999001');
     const limited = await handler(post([{ role: 'user', content: '再推荐喜剧' }]));
     assert.equal(limited.status, 429); assert.equal((await limited.json()).code, 'daily_limit'); assert.equal(deepseekCalls, 1);
+    const legacy = await handler(request('/api/assistant/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: [{ role: 'user', content: '喜剧' }], mode: 'local' }) }));
+    assert.equal(legacy.status, 400);
+    assert.equal((await legacy.json()).code, 'invalid_request');
+    assert.equal(deepseekCalls, 1);
     const oversized = await handler(new Request('https://lightmoon.example/api/assistant/chat', { method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' }, body: 'x'.repeat(48001) }));
     assert.equal(oversized.status, 413);
     assert.equal((await handler(request('/api/catalog?filters=[]'))).status, 400);
   } finally { storage.close(); }
+});
+
+test('Worker rejects missing DeepSeek configuration before consuming database or AI quota', async () => {
+  const fail = () => assert.fail('Unconfigured AI must not access storage or the provider');
+  const handler = createWorkerHandler({ knowledge: { stats: fail, consumeRateLimit: fail }, fetchImpl: fail });
+  const status = await handler(new Request('https://lightmoon.example/api/assistant/status'));
+  assert.equal(status.status, 503);
+  assert.equal((await status.json()).code, 'ai_not_configured');
+  const response = await handler(new Request('https://lightmoon.example/api/assistant/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: [{ role: 'user', content: '喜剧' }] }) }));
+  assert.equal(response.status, 503);
+  const result = await response.json();
+  assert.equal(result.code, 'ai_not_configured');
+  assert.equal(result.recommendations, undefined);
 });
 
 test('D1 admission removes a film and its indexes when any refreshed score falls below the threshold', async () => {
@@ -126,5 +143,6 @@ test('Worker reports the daily D1 limit without leaking upstream diagnostics or 
   const body = await response.json();
   assert.equal(body.code, 'storage_daily_limit');
   assert.match(body.error, /8 点/);
+  assert.doesNotMatch(body.error, /片库检索/);
   assert.doesNotMatch(JSON.stringify({ body, logs }), /private-raw-diagnostic|private-test-key/);
 });

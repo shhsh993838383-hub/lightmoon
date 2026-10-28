@@ -1,5 +1,5 @@
 import { createD1KnowledgeBase } from './knowledge.mjs';
-import { answerQuestion, AssistantError, validateMessages } from '../server/assistant.mjs';
+import { answerQuestion, assertAiConfigured, AssistantError, validateMessages } from '../server/assistant.mjs';
 import { createTmdbClient, TmdbError } from '../server/tmdb.mjs';
 import { createMovieDiscovery } from '../server/movie-discovery.mjs';
 import { createDoubanClient, DoubanError, doubanCategories, doubanRegions } from '../server/douban-api.mjs';
@@ -50,8 +50,9 @@ export function createWorkerHandler({ knowledge, accounts = knowledge?.accounts,
       const accountResponse = await accountHandler({ method: request.method, url, authorization: request.headers.get('Authorization'), client: request.headers.get('CF-Connecting-IP') || 'unknown', readBody: () => readBody(request) });
       if (accountResponse) return json(accountResponse.status, accountResponse.data);
       if (request.method === 'GET' && path === '/api/assistant/status') {
+        assertAiConfigured(config);
         const stats = await knowledge.stats();
-        return json(stats.movieCount ? 200 : 503, { ready: stats.movieCount > 0, mode: config.apiKey ? 'deepseek' : 'local', ...stats });
+        return json(stats.movieCount ? 200 : 503, { ready: stats.movieCount > 0, mode: 'deepseek', ...stats });
       }
       if (request.method === 'GET' && path === '/api/import/status') {
         return json(200, { status: 'snapshot', ...await knowledge.stats() });
@@ -80,13 +81,13 @@ export function createWorkerHandler({ knowledge, accounts = knowledge?.accounts,
         const body = await readBody(request);
         if (!body || typeof body !== 'object' || Array.isArray(body)) throw new AssistantError('对话格式不正确。', 'invalid_request', 400);
         validateMessages(body.messages);
-        if (body.mode && !['auto', 'local'].includes(body.mode)) throw new AssistantError('不支持的对话模式。', 'invalid_request', 400);
+        if (body.mode !== undefined && body.mode !== 'auto') throw new AssistantError('不支持的对话模式。', 'invalid_request', 400);
+        assertAiConfigured(config);
         const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(request.headers.get('CF-Connecting-IP') || 'unknown'));
         const client = [...new Uint8Array(digest)].map(value => value.toString(16).padStart(2, '0')).join('');
         if (!await knowledge.consumeRateLimit('ai:' + client, 12)) return json(429, { error: '请求比较频繁，请稍等片刻。', code: 'rate_limit' });
-        if (config.apiKey && body.mode !== 'local' && !await knowledge.consumeRateLimit('deepseek:' + new Date().toISOString().slice(0, 10), dailyLimit, 86400)) return json(429, { error: '今天的 AI 对话额度已用完，可以先使用片库检索。', code: 'daily_limit' });
-        const result = await answerQuestion({ knowledge, config, messages: body.messages, mode: body.mode || 'auto', signal: request.signal, fetchImpl });
-        if (!result.movies) result.movies = (await Promise.all(result.recommendations.map(item => knowledge.getMovie(item.id)))).filter(Boolean);
+        if (!await knowledge.consumeRateLimit('deepseek:' + new Date().toISOString().slice(0, 10), dailyLimit, 86400)) return json(429, { error: '今天的 AI 对话额度已用完，请明天重试。', code: 'daily_limit' });
+        const result = await answerQuestion({ knowledge, config, messages: body.messages, mode: body.mode, signal: request.signal, fetchImpl });
         return json(200, result);
       }
       return json(404, { error: '接口不存在。' });
@@ -97,7 +98,7 @@ export function createWorkerHandler({ knowledge, accounts = knowledge?.accounts,
       const categories = String(error.message || '').match(/D1_[A-Z_]+|SQLITE_[A-Z_]+|different request|I\/O|no such table|no such column|exceed|network|timeout|reset|abort|binding|internal error|rows read|rows written|per day|per query|daily|queries|duration|size|length|bound parameters|subrequest|free tier/gi) || [];
       console.error(JSON.stringify({ event: 'lightmoon_service_failure', categories }));
       if (/D1_ERROR/i.test(String(error.message)) && /exceed/i.test(String(error.message)) && /free tier|daily/i.test(String(error.message))) {
-        return json(503, { error: '在线片库今日读取额度已用完，请在北京时间早上 8 点额度重置后重试。你仍可浏览片库，或使用本地片库检索。', code: 'storage_daily_limit' });
+        return json(503, { error: '在线片库今日读取额度已用完，请在北京时间早上 8 点额度重置后重试。', code: 'storage_daily_limit' });
       }
       return json(503, { error: '电影服务暂时不可用，请稍后重试。', code: 'service_unavailable' });
     }

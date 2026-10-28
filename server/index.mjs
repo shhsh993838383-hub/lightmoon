@@ -4,7 +4,7 @@ import { extname, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { createKnowledgeBase, projectRoot } from './knowledge-base.mjs';
-import { answerQuestion, AssistantError } from './assistant.mjs';
+import { answerQuestion, assertAiConfigured, AssistantError, validateMessages } from './assistant.mjs';
 import { createDoubanClient, DoubanError, doubanCategories, doubanRegions } from './douban.mjs';
 import { createMovieDiscovery } from './movie-discovery.mjs';
 import { TmdbError } from './tmdb.mjs';
@@ -94,34 +94,37 @@ export function createAppHandler({ knowledge = createKnowledgeBase(), config = {
     }
     if (request.method === 'GET' && ['/api/catalog', '/api/assistant/status'].includes(path)) {
       try {
+        if (path === '/api/assistant/status') assertAiConfigured(config);
         const stats = await knowledge.stats();
-        if (path === '/api/assistant/status') return json(response, 200, { ready: true, mode: config.apiKey ? 'deepseek' : 'local', ...stats });
+        if (path === '/api/assistant/status') return json(response, stats.movieCount ? 200 : 503, { ready: stats.movieCount > 0, mode: 'deepseek', ...stats });
         let filters = {}, ids;
         try { filters = JSON.parse(requestUrl.searchParams.get('filters') || '{}'); ids = requestUrl.searchParams.has('ids') ? requestUrl.searchParams.get('ids').split(',').filter(Boolean).slice(0, 2000) : undefined; }
         catch { return json(response, 400, { error: '筛选条件格式不正确。' }); }
         if (!filters || typeof filters !== 'object' || Array.isArray(filters)) return json(response, 400, { error: '筛选条件格式不正确。' });
         return json(response, 200, { ...await knowledge.queryCatalog({ filters, ids, query: requestUrl.searchParams.get('query'), mode: requestUrl.searchParams.get('mode'), sort: requestUrl.searchParams.get('sort'), limit: requestUrl.searchParams.get('limit'), offset: requestUrl.searchParams.get('offset'), facets: requestUrl.searchParams.get('facets') === '1' }), ...stats });
-      } catch { return json(response, 503, { error: '电影资料暂时无法读取，请稍后重试。', code: 'catalog_unavailable' }); }
+      } catch (error) { return json(response, error instanceof AssistantError ? error.status : 503, { error: error instanceof AssistantError ? error.message : '电影资料暂时无法读取，请稍后重试。', code: error instanceof AssistantError ? error.code : 'catalog_unavailable' }); }
     }
     if (request.method === 'POST' && path === '/api/assistant/chat') {
-      const client = process.env.VERCEL ? String(request.headers['x-forwarded-for'] || request.socket?.remoteAddress || 'unknown').split(',')[0].trim() : request.socket?.remoteAddress || 'local';
-      const now = Date.now();
-      const recent = (requests.get(client) || []).filter(time => now - time < 60000);
-      if (recent.length >= 24) return json(response, 429, { error: '请求比较频繁，请稍等片刻。', code: 'rate_limit' });
-      if (knowledge.consumeRateLimit && !await knowledge.consumeRateLimit('ai:' + client)) return json(response, 429, { error: '请求比较频繁，请稍等片刻。', code: 'rate_limit' });
-      if (requests.size > 5000) requests.clear();
-      requests.set(client, [...recent, now]);
       const controller = new AbortController();
       const cancel = () => { if (!response.writableEnded) controller.abort(); };
       response.on('close', cancel);
       try {
         const body = await readBody(request);
         if (!body || typeof body !== 'object' || Array.isArray(body)) throw new AssistantError('对话格式不正确。', 'invalid_request', 400);
-        const result = await answerQuestion({ knowledge, config, messages: body.messages, mode: body.mode || 'auto', signal: controller.signal, fetchImpl });
-        if (!result.movies) result.movies = (await Promise.all(result.recommendations.map(item => knowledge.getMovie(item.id)))).filter(Boolean);
+        validateMessages(body.messages);
+        if (body.mode !== undefined && body.mode !== 'auto') throw new AssistantError('不支持的对话模式。', 'invalid_request', 400);
+        assertAiConfigured(config);
+        const client = process.env.VERCEL ? String(request.headers['x-forwarded-for'] || request.socket?.remoteAddress || 'unknown').split(',')[0].trim() : request.socket?.remoteAddress || 'local';
+        const now = Date.now();
+        const recent = (requests.get(client) || []).filter(time => now - time < 60000);
+        if (recent.length >= 24) return json(response, 429, { error: '请求比较频繁，请稍等片刻。', code: 'rate_limit' });
+        if (knowledge.consumeRateLimit && !await knowledge.consumeRateLimit('ai:' + client)) return json(response, 429, { error: '请求比较频繁，请稍等片刻。', code: 'rate_limit' });
+        if (requests.size > 5000) requests.clear();
+        requests.set(client, [...recent, now]);
+        const result = await answerQuestion({ knowledge, config, messages: body.messages, mode: body.mode, signal: controller.signal, fetchImpl });
         if (!controller.signal.aborted) json(response, 200, result);
       } catch (error) {
-        if (!controller.signal.aborted && !response.writableEnded) json(response, error instanceof AssistantError ? error.status : 500, { error: error instanceof AssistantError ? error.message : '暂时无法完成检索，请重试。', code: error instanceof AssistantError ? error.code : 'internal_error' });
+        if (!controller.signal.aborted && !response.writableEnded) json(response, error instanceof AssistantError ? error.status : 500, { error: error instanceof AssistantError ? error.message : 'AI 服务暂时无法完成请求，请重试。', code: error instanceof AssistantError ? error.code : 'internal_error' });
       } finally { response.removeListener('close', cancel); }
       return;
     }

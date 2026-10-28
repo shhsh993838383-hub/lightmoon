@@ -117,8 +117,3 @@ export async function retrieve(knowledge, messages) {
   }).sort((a, b) => b.rank - a.rank).slice(0, 12).map(item => item.movie);
   return { preferences, candidates };
 }
-
-export function movieReason(movie, preferences) {
-  const matched = Object.entries(preferences.positive).flatMap(([group, values]) => values.filter(value => group === 'country' ? movie.country.includes(value) : movie[group].includes(value)));
-  return `${matched.length ? `符合${[...new Set(matched)].join('、')}；` : ''}${movie.minutes ? `${movie.minutes} 分钟。` : ''}${movie.text || '可以打开电影资料了解更多。'}`;
-}

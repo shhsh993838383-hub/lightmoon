@@ -4,7 +4,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { createCloudKnowledgeBase } from '../cloud-knowledge.mjs';
 import { createKnowledgeBase } from '../knowledge-base.mjs';
 import { emptyFilters, facets, matchesFilters, toggleFilter } from '../../src/lib/catalog.js';
-import { answerQuestion } from '../assistant.mjs';
+import { retrieve } from '../retrieval.mjs';
 import { normalizeTmdbMovie } from '../tmdb.mjs';
 import { facetFixtures, metadataFilters } from './fixtures/facet-movies.mjs';
 
@@ -31,9 +31,9 @@ test('cloud PostgreSQL supports catalog filters, pagination, retrieval, and pers
     assert.deepEqual((await cloud.queryCatalog({ query: '怦然心动' })).movies.map(movie => movie.id), ['flipped']);
     for (const facet of facets) for (const value of facet.options) assert.equal(first.facetCounts[facet.id][value], seeds.filter(movie => matchesFilters(movie, toggleFilter(emptyFilters(), facet.id, value))).length);
     assert.ok((await cloud.search('白日梦想家')).some(hit => hit.id === 'walter-mitty'));
-    const answer = await answerQuestion({ knowledge: cloud, messages: [{ role: 'user', content: '爱情片，两个小时以内' }], mode: 'local' });
-    assert.ok(answer.recommendations.length);
-    for (const item of answer.recommendations) { const movie = await cloud.getMovie(item.id); assert.ok(movie.genre.includes('爱情')); assert.ok(movie.minutes <= 120); }
+    const result = await retrieve(cloud, [{ role: 'user', content: '爱情片，两个小时以内' }]);
+    assert.ok(result.candidates.length);
+    for (const movie of result.candidates) { assert.ok(movie.genre.includes('爱情')); assert.ok(movie.minutes <= 120); }
     await cloud.setMetadata('tmdbImportState', JSON.stringify({ checked: 12 }));
     const second = createCloudKnowledgeBase({ query, seeds, initialMovies: [] });
     assert.equal(JSON.parse(await second.getMetadata('tmdbImportState')).checked, 12);

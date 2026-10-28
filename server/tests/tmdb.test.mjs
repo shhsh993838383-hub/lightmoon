@@ -112,7 +112,12 @@ test('imported films become searchable, visible through HTTP, and usable in AI r
   const temp = mkdtempSync(join(tmpdir(), 'lightmoon-kb-'));
   const path = join(temp, 'movies.json');
   const knowledge = createKnowledgeBase({ dbPath: ':memory:', importedPath: path });
-  const server = createAppServer({ knowledge, config: {} });
+  let providerCalls = 0;
+  const server = createAppServer({ knowledge, config: { apiKey: 'test-key' }, fetchImpl: async (url, options) => {
+    providerCalls++;
+    assert.ok(JSON.parse(options.body).messages[1].content.includes('tmdb-990001'));
+    return Response.json({ choices: [{ message: { content: JSON.stringify({ message: '试试这部动作片。', recommendations: [{ id: 'tmdb-990001', reason: '符合动作类型。' }] }) } }] });
+  } });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
   try {
@@ -125,6 +130,8 @@ test('imported films become searchable, visible through HTTP, and usable in AI r
     assert.ok(catalog.movies.some(movie => movie.id === 'tmdb-990001'));
     assert.ok(!JSON.stringify(catalog).includes('ACCESS_TOKEN'));
     const answer = await (await fetch(base + '/api/assistant/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: [{ role: 'user', content: '想看动作片' }] }) })).json();
+    assert.equal(providerCalls, 1);
+    assert.equal(answer.mode, 'deepseek');
     assert.ok(answer.recommendations.some(movie => movie.id === 'tmdb-990001'));
   } finally {
     await new Promise(resolve => server.close(resolve));
